@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+pushd /home/pi/tankmonitor
+python tankmonitor.py

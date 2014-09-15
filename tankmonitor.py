@@ -6,8 +6,10 @@ from sockjs.tornado import SockJSRouter, SockJSConnection
 import logging
 from tanklogger import TankLogger, TankLogRecord
 from functools import partial
+from datetime import datetime
 from time import time
 from serial import Serial
+import settings
 from PIL import Image, ImageDraw, ImageFont
 import pcd8544.lcd as lcd
 import netifaces as ni
@@ -17,13 +19,14 @@ logging.basicConfig()
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 listen_port = 4242
-disp_contrast_on = 0xB8
+disp_contrast_on = 0xB0
 disp_contrast_off = 0x80
 disp_font = ImageFont.truetype("/usr/share/fonts/truetype/freefont/FreeMonoBold.ttf", 34)
 disp_font_sm = ImageFont.truetype("/usr/share/fonts/truetype/freefont/FreeMonoBold.ttf", 9)
 
 BTN_IN = 2   # wiringpi pin IDs
 BTN_OUT = 3  # wiringpi pin IDs
+
 
 class EventConnection(SockJSConnection):
     event_listeners = set()
@@ -39,44 +42,50 @@ class EventConnection(SockJSConnection):
         for event_listener in EventConnection.event_listeners:
             event_listener.send(json.dumps(msg_dict))
 
+
 class MainPageHandler(RequestHandler):
     def get(self, *args, **kwargs):
         self.render('main.html')
 
 logger_map = {
-    '10': 'ten_seconds_logger',
     '60': 'minute_logger',
-    '3600': 'hour_logger',
-    '86400': 'day_logger'
+    '3600': 'hour_logger'
 }
+
 
 class LogDownloadHandler(RequestHandler):
     def get(self, logger_interval):
         fmt = self.get_argument('format', 'nvd3')  # or tsv
+        deltas = self.get_argument('deltas', False)
         logger = getattr(self.application, logger_map[logger_interval], None)
         if logger:
+            records = logger.deltas if deltas else logger.records
             if fmt == 'nvd3':
                 self.finish({'key': 'Tank Level',
                              'values': list(logger.records)})
             elif fmt == 'tsv':
                 self.set_header('Content-Type', 'text/plain')
-                self.write_tsv(logger)
+                if deltas:
+                    self.write('"Timestamp"\t"Rate of Change (%s/min)"\n' % settings.LOG_UNIT)
+                else:
+                    self.write('"Timestamp"\t"%s"\n' % settings.LOG_UNIT)
+                self.write_tsv(records)
                 self.finish()
 
-    def write_tsv(self, logger):
-        for record in logger.records:
-            self.write(str(record.timestamp))
+    def write_tsv(self, records):
+        for record in records:
+            timestamp = datetime.fromtimestamp(record.timestamp).strftime('%Y-%m-%d %H:%M:%S')
+            self.write(str(timestamp))
             self.write('\t')
             self.write(str(record.depth))
             self.write('\n')
 
+
 class TankMonitor(Application):
     def __init__(self, handlers=None, **settings):
         super(TankMonitor, self).__init__(handlers, **settings)
-        self.ten_seconds_logger = TankLogger(10)
         self.minute_logger = TankLogger(60)
         self.hour_logger = TankLogger(3600)
-        self.day_logger = TankLogger(86400)
         self.latest_raw_val = None
         self.display_expiry = 0
 
@@ -89,13 +98,15 @@ class TankMonitor(Application):
 
     def _offer_log_record(self, timestamp, depth):
         log_record = TankLogRecord(timestamp=timestamp, depth=depth)
-        for logger in self.ten_seconds_logger, self.minute_logger, \
-                      self.hour_logger, self.day_logger:
-            logger.offer(log_record)
+        for logger in self.minute_logger, self.hour_logger:
+            alert = logger.offer(log_record)
+            if alert:
+                # TODO: e-mail alert
+                AlertMailer.offer(alert)
         EventConnection.notify_all({
-            'event': 'depth_record',
+            'event': 'log_value',
             'timestamp': timestamp,
-            'depth': depth
+            'value': depth
         })
 
     def update_display(self):
@@ -137,9 +148,10 @@ class MaxbotixHandler():
         self.set_serial_port(**kwargs)
         self.stop_reading = False
         self.tank_monitor = tank_monitor
-        self.calibrate_m = 1
-        self.calibrate_b = 0
-
+        self.calibrate_m = kwargs.get('calibrate_m', 1.0)
+        self.calibrate_b = kwargs.get('calibrate_b', 0.0)
+        log.info("Initializing Maxbotix interface with m=%2.4f, b=%2.4f" %
+                 (self.calibrate_m, self.calibrate_b))
     def read(self):
         log.info("Starting MaxbotixHandler read")
         val = None
@@ -174,6 +186,17 @@ class MaxbotixHandler():
             self.serial_port = Serial(**kwargs)
 
 
+class AlertMailer(object):
+
+    last_alert = None
+
+    @staticmethod
+    def offer(tank_alert):
+        log.warn("Sending e-mail alert due to " + str(tank_alert))
+        if AlertMailer.last_alert is None or \
+                (time() - AlertMailer.last_alert) > settings.EMAIL['period']:
+            pass
+
 if __name__ == "__main__":
     event_router = SockJSRouter(EventConnection, '/event')
     handlers = [
@@ -181,7 +204,7 @@ if __name__ == "__main__":
         (r'/logger/(.*)', LogDownloadHandler)  # arg is log interval
     ]
     handlers += event_router.urls
-    settings = {
+    tornado_settings = {
         'static_path': 'static',
         'template_path': 'templates',
         'debug': True
@@ -195,9 +218,9 @@ if __name__ == "__main__":
     wiringpi.digitalWrite(BTN_OUT, 1)
     wiringpi.pinMode(BTN_IN, 0)
 
-    app = TankMonitor(handlers, **settings)
-    maxbotix = MaxbotixHandler(tank_monitor=app, port='/dev/ttyAMA0', timeout=10)
-    maxbotix.calibrate(0.10, 0)
+    app = TankMonitor(handlers, **tornado_settings)
+    maxbotix = MaxbotixHandler(tank_monitor=app, port='/dev/ttyAMA0', timeout=10,
+                               **settings.MAXBOTICS)
     ioloop = IOLoop.instance()
     disp_print_cb = PeriodicCallback(app.update_display, callback_time=500, io_loop=ioloop)
     disp_print_cb.start()

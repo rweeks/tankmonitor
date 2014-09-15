@@ -36,10 +36,10 @@ var tankmonitor = {
     on_load: function() {
         var event_sock = new SockJS('/event');
         event_sock.onmessage = function(e) {
-            var $current_depth=$('#current-depth');
+            var $current_depth=$('#current-value');
             e = $.parseJSON(e.data);
-            if (e.event == 'depth_record') {
-                $current_depth.html(e.depth);
+            if (e.event == 'log_value') {
+                $current_depth.html(e.value);
             }
         };
         $('div.tankchart').each(function(ix, elem) {

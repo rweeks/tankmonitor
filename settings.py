@@ -1,9 +1,9 @@
 MAXBOTICS = dict(
-    calibrate_m=1.0/(2860-190),
-    calibrate_b=-190.0/(2860-190)
+    calibrate_m=-0.037453,
+    calibrate_b=107.1161
 )
 
-LOG_UNIT = "litres"
+LOG_UNIT = "% full"
 
 EMAIL = dict(
     period=3600,   # Minimum time in seconds between alert emails.

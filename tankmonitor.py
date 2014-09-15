@@ -148,10 +148,9 @@ class MaxbotixHandler():
         self.set_serial_port(**kwargs)
         self.stop_reading = False
         self.tank_monitor = tank_monitor
-        self.calibrate_m = kwargs.get('calibrate_m', 1.0)
-        self.calibrate_b = kwargs.get('calibrate_b', 0.0)
-        log.info("Initializing Maxbotix interface with m=%2.4f, b=%2.4f" %
-                 (self.calibrate_m, self.calibrate_b))
+        self.calibrate_m = 1
+        self.calibrate_b = 0
+
     def read(self):
         log.info("Starting MaxbotixHandler read")
         val = None
@@ -172,6 +171,7 @@ class MaxbotixHandler():
         """ Defines the parameters for a linear equation y=mx+b, which is used
         to convert the output of the sensor to a tank depth.
         """
+        log.info("Calibrating Maxbotix interface with m=%2.4f, b=%2.4f" % (m, b))
         self.calibrate_m = float(m)
         self.calibrate_b = float(b)
 

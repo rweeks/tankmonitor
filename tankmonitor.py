@@ -219,8 +219,9 @@ if __name__ == "__main__":
     wiringpi.pinMode(BTN_IN, 0)
 
     app = TankMonitor(handlers, **tornado_settings)
-    maxbotix = MaxbotixHandler(tank_monitor=app, port='/dev/ttyAMA0', timeout=10,
-                               **settings.MAXBOTICS)
+    maxbotix = MaxbotixHandler(tank_monitor=app, port='/dev/ttyAMA0', timeout=10)
+    maxbotix.calibrate(settings.MAXBOTICS['calibrate_m'],
+                       settings.MAXBOTICS['calibrate_b'])
     ioloop = IOLoop.instance()
     disp_print_cb = PeriodicCallback(app.update_display, callback_time=500, io_loop=ioloop)
     disp_print_cb.start()

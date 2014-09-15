@@ -48,6 +48,7 @@ class MainPageHandler(RequestHandler):
         self.render('main.html')
 
 logger_map = {
+    '10': 'tensec_logger',
     '60': 'minute_logger',
     '3600': 'hour_logger'
 }
@@ -62,7 +63,7 @@ class LogDownloadHandler(RequestHandler):
             records = logger.deltas if deltas else logger.records
             if fmt == 'nvd3':
                 self.finish({'key': 'Tank Level',
-                             'values': list(logger.records)})
+                             'values': list(records)})
             elif fmt == 'tsv':
                 self.set_header('Content-Type', 'text/plain')
                 if deltas:
@@ -84,6 +85,7 @@ class LogDownloadHandler(RequestHandler):
 class TankMonitor(Application):
     def __init__(self, handlers=None, **settings):
         super(TankMonitor, self).__init__(handlers, **settings)
+        self.tensec_logger = TankLogger(10)
         self.minute_logger = TankLogger(60)
         self.hour_logger = TankLogger(3600)
         self.latest_raw_val = None
@@ -98,7 +100,7 @@ class TankMonitor(Application):
 
     def _offer_log_record(self, timestamp, depth):
         log_record = TankLogRecord(timestamp=timestamp, depth=depth)
-        for logger in self.minute_logger, self.hour_logger:
+        for logger in self.tensec_logger, self.minute_logger, self.hour_logger:
             alert = logger.offer(log_record)
             if alert:
                 # TODO: e-mail alert
@@ -148,10 +150,9 @@ class MaxbotixHandler():
         self.set_serial_port(**kwargs)
         self.stop_reading = False
         self.tank_monitor = tank_monitor
-        self.calibrate_m = kwargs.get('calibrate_m', 1.0)
-        self.calibrate_b = kwargs.get('calibrate_b', 0.0)
-        log.info("Initializing Maxbotix interface with m=%2.4f, b=%2.4f" %
-                 (self.calibrate_m, self.calibrate_b))
+        self.calibrate_m = 1
+        self.calibrate_b = 0
+
     def read(self):
         log.info("Starting MaxbotixHandler read")
         val = None
@@ -172,11 +173,15 @@ class MaxbotixHandler():
         """ Defines the parameters for a linear equation y=mx+b, which is used
         to convert the output of the sensor to a tank depth.
         """
+        log.info("Calibrating Maxbotix interface with m=%2.4f, b=%2.4f" % (m, b))
         self.calibrate_m = float(m)
         self.calibrate_b = float(b)
 
     def convert(self, val):
-        return long(self.calibrate_m * float(val) + self.calibrate_b)
+        converted = self.calibrate_m * float(val) + self.calibrate_b
+        if log.isEnabledFor(logging.DEBUG):
+            log.debug("Raw value %2.4f converted to %2.4f" % (float(val), converted))
+        return converted
 
     def shutdown(self):
         self.stop_reading = True
@@ -219,8 +224,9 @@ if __name__ == "__main__":
     wiringpi.pinMode(BTN_IN, 0)
 
     app = TankMonitor(handlers, **tornado_settings)
-    maxbotix = MaxbotixHandler(tank_monitor=app, port='/dev/ttyAMA0', timeout=10,
-                               **settings.MAXBOTICS)
+    maxbotix = MaxbotixHandler(tank_monitor=app, port='/dev/ttyAMA0', timeout=10)
+    maxbotix.calibrate(settings.MAXBOTICS['calibrate_m'],
+                       settings.MAXBOTICS['calibrate_b'])
     ioloop = IOLoop.instance()
     disp_print_cb = PeriodicCallback(app.update_display, callback_time=500, io_loop=ioloop)
     disp_print_cb.start()

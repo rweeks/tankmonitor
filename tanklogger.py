@@ -45,6 +45,7 @@ class TankLogger:
         prev_rec = None
         for record in self.records:
             if prev_rec is None:
+                prev_rec = record
                 continue
             interval, delta = find_delta(record, prev_rec)
             if not interval:
@@ -54,4 +55,5 @@ class TankLogger:
                 # Actually change in depth per minute
                 depth=delta
             ))
+            prev_rec = record
         return dlog

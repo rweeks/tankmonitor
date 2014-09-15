@@ -1,6 +1,6 @@
 MAXBOTICS = dict(
-    calibrate_m=0.3745,
-    calibrate_b=107.1
+    calibrate_m=1.0/(2860-190),
+    calibrate_b=-190.0/(2860-190)
 )
 
 LOG_UNIT = "litres"

@@ -1,5 +1,6 @@
 var tankmonitor = {
     setup_graph: function($chart_holder) {
+        var units = $('#current-value').data('log-unit');
         d3.json($chart_holder.data('json-src'), function(data) {
           nv.addGraph(function() {
 
@@ -16,7 +17,7 @@ var tankmonitor = {
                   ;
 
             chart.yAxis
-                .axisLabel("Level (cm)");
+                .axisLabel(units);
             chart.xAxis
                 .axisLabel("Time")
                 .tickFormat(function(d) {

@@ -1,6 +1,6 @@
 var tankmonitor = {
     setup_graph: function($chart_holder) {
-        var units = $('#current-value').data('log-unit');
+        var units = $chart_holder.data('log-unit');
         d3.json($chart_holder.data('json-src'), function(data) {
           nv.addGraph(function() {
 
@@ -17,7 +17,9 @@ var tankmonitor = {
                   ;
 
             chart.yAxis
-                .axisLabel(units);
+                .axisLabel(units)
+                .tickFormat(d3.format('.02f'));
+              
             chart.xAxis
                 .axisLabel("Time")
                 .tickFormat(function(d) {
@@ -40,7 +42,7 @@ var tankmonitor = {
             var $current_depth=$('#current-value');
             e = $.parseJSON(e.data);
             if (e.event == 'log_value') {
-                $current_depth.html(e.value);
+                $current_depth.html(e.value.toFixed());
             }
         };
         $('div.tankchart').each(function(ix, elem) {

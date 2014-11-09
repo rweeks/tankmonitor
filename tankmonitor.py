@@ -17,7 +17,7 @@ import wiringpi2 as wiringpi
 
 logging.basicConfig()
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 listen_port = 4242
 disp_contrast_on = 0xB0
 disp_contrast_off = 0x80
@@ -63,7 +63,7 @@ class LogDownloadHandler(RequestHandler):
             records = logger.deltas if deltas else logger.records
             if fmt == 'nvd3':
                 self.finish({'key': 'Tank Level',
-                             'values': list(logger.records)})
+                             'values': list(records)})
             elif fmt == 'tsv':
                 self.set_header('Content-Type', 'text/plain')
                 if deltas:
@@ -178,9 +178,10 @@ class MaxbotixHandler():
         self.calibrate_b = float(b)
 
     def convert(self, val):
-        converted = long(self.calibrate_m * float(val) + self.calibrate_b)
+        converted = self.calibrate_m * float(val) + self.calibrate_b
         if log.isEnabledFor(logging.DEBUG):
-            log.debug("Raw value %2.4f converted to %d" % (float(val), converted))
+            log.debug("Raw value %2.4f converted to %2.4f" % (float(val), converted))
+        return converted
 
     def shutdown(self):
         self.stop_reading = True

@@ -19,7 +19,6 @@ var tankmonitor = {
             chart.yAxis
                 .axisLabel(units)
                 .tickFormat(d3.format('.02f'));
-
             chart.xAxis
                 .axisLabel("Time")
                 .tickFormat(function(d) {

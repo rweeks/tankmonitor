@@ -35,6 +35,11 @@ var tankmonitor = {
           });
         });
     },
+
+    activate_valve_tab: function() {
+        console.log("Activating valve tab");
+    },
+
     on_load: function() {
         var event_sock = new SockJS('/event');
         event_sock.onmessage = function(e) {
@@ -47,5 +52,6 @@ var tankmonitor = {
         $('div.tankchart').each(function(ix, elem) {
             tankmonitor.setup_graph($(elem));
         });
+        $('#valve-tab-link').on('shown.bs.tab', tankmonitor.activate_valve_tab);
     }
-}
+};

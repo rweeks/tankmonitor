@@ -24,7 +24,7 @@
       <ul class="nav nav-tabs" role="tablist">
         <li class="active"><a href="#levels" role="tab" data-toggle="tab">Readings</a></li>
         <li><a href="#deltas" role="tab" data-toggle="tab">&Delta;<sub>t</sub></a></li>
-        <li><a href="#valve" role="tab" data-toggle="tab">Valve</a></li>
+        <li><a id="valve-tab-link" href="#valve" role="tab" data-toggle="tab">Valve</a></li>
       </ul>
       <div class="tab-content">
           <div class="tab-pane active" id="levels">
@@ -72,9 +72,9 @@
                   <h4>Creek Input Valve</h4>
                   </div>
                   <div>
-                      <span class="valve-state-desc">Loading valve state...</span>
                       <form class="form-inline" method="POST" action="/valve">
-                          <button type="button" class="button alert" disabled>Toggle Valve</button>
+                          <span class="valve-state-desc">Loading valve state...</span>
+                          <button type="button" class="btn btn-primary disabled">Toggle Valve</button>
                       </form>
                   </div>
                 </div>

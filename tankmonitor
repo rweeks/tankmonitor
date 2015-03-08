@@ -14,7 +14,7 @@
 case "$1" in
     start)
         echo "Starting tankmonitor"
-        /home/pi/tankmonitor/start
+        /home/pi/tankmonitor/start &
         ;;
     stop)
         echo "Stopping tankmonitor"

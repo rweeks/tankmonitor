@@ -70,6 +70,9 @@ var tankmonitor = {
         });
         $('button.valve-state-btn').on('click', function () {
             $.post('/valve', tankmonitor.render_valve_state);
+        }).fail(function() {
+            console.log("Error setting valve state");
+            console.dir(this);
         });
     }
 };

@@ -115,8 +115,10 @@ class ValveHandler(RequestHandler):
     def post(self, *args, **kwargs):
         auth_header = self.request.headers.get('Authorization')
         if auth_header is None or not auth_header.startswith('Basic '):
+            self.set_status(401, reason="Valve control requires authentication")
             self.set_header('WWW-Authenticate', 'Basic realm=Restricted')
-            raise HTTPError(401, reason="Valve control requires authentication")
+            self.finish()
+            return
         else:
             auth_decoded = base64.decodestring(auth_header[6:])
             hdr_auth = dict()

@@ -1,5 +1,5 @@
 from threading import Lock, Thread
-from tornado.web import Application, RequestHandler
+from tornado.web import Application, RequestHandler, HTTPError
 from tornado.httpserver import HTTPServer
 from tornado.template import Template
 from tornado.ioloop import IOLoop, PeriodicCallback
@@ -16,7 +16,7 @@ from email.mime.text import MIMEText
 from concurrent.futures import ThreadPoolExecutor
 
 import smtplib
-
+import base64
 import settings as appconfig
 from PIL import Image, ImageDraw, ImageFont
 import pcd8544.lcd as lcd
@@ -37,6 +37,7 @@ BTN_OUT = 3  # wiringpi pin ID
 VALVE_GPIO = 6   # wiringpi pin ID
 
 thread_pool = ThreadPoolExecutor(2)
+
 
 class EventConnection(SockJSConnection):
     event_listeners = set()
@@ -112,6 +113,16 @@ class ValveHandler(RequestHandler):
         self.finish(ValveHandler.get_state())
 
     def post(self, *args, **kwargs):
+        auth_header = self.request.headers.get('Authorization')
+        if auth_header is None or not auth_header.startswith('Basic '):
+            self.set_header('WWW-Authenticate', 'Basic realm=Restricted')
+            raise HTTPError(401, reason="Valve control requires authentication")
+        else:
+            auth_decoded = base64.decodestring(auth_header[6:])
+            hdr_auth = dict()
+            hdr_auth['username'], hdr_auth['password'] = auth_decoded.split(':', 2)
+            if hdr_auth != appconfig.CREDENTIALS:
+                raise HTTPError(403, reason="Valve control credentials invalid")
         ValveHandler._valve_state = not ValveHandler._valve_state
         ValveHandler._transition_time = datetime.now().isoformat()[:19]
         wiringpi.digitalWrite(VALVE_GPIO, int(ValveHandler._valve_state))

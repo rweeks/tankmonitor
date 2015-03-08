@@ -15,3 +15,7 @@ EMAIL = dict(
     distribution=['fred@example.com', 'jim@example.com']
 )
 
+CREDENTIALS = dict(
+    username="admin",
+    password="admin"
+)

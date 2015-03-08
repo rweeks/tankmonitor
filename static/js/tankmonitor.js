@@ -38,17 +38,16 @@ var tankmonitor = {
 
     activate_valve_tab: function() {
         $.get('/valve', function(data) {
-            data = $.parseJSON(data);
             var v_state = data['state'],
                 v_transition = data['transition_time'],
                 state_msg = "Unknown valve state.",
                 btn_msg = "Toggle Valve";
             v_transition = (v_transition == null) ? "" : " since " + v_transition;
-            state_msg = (v_state == 0) ? "Open (GPIO low)" + v_transition :
+            state_msg = v_state ? "Open (GPIO low)" + v_transition :
                 "Closed (GPIO high)" + v_transition;
-            btn_msg = (v_state == 0) ? "Close Valve" : "Open Valve";
-            $('div.valve-state-desc').text(state_msg);
-            $('button.valve-state-button').text(btn_msg);
+            btn_msg = v_state ? "Close Valve" : "Open Valve";
+            $('.valve-state-desc').text(state_msg);
+            $('button.valve-state-btn').text(btn_msg).removeClass('disabled');
         })
     },
 

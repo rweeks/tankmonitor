@@ -98,25 +98,30 @@ class ValveHandler(RequestHandler):
        In both cases the response is a json dict like so:
        {
           "valve": 0,
+          "transition_time": "2015-03-18T12:00:12"
        }
        Indicating the current status of the valve: 0 means that the IO pin is low (the valve is
        normally-open, so the valve will be open). 1 means that the IO pin is high and the valve is
-       closed."""
+       closed. transition_time is the time of the most recent state change, in the server's time
+       zone, or null if the transition time is not known."""
 
     _valve_state = False
+    _transition_time = None
 
     def get(self, *args, **kwargs):
         self.finish(ValveHandler.get_state())
 
     def post(self, *args, **kwargs):
         ValveHandler._valve_state = not ValveHandler._valve_state
+        ValveHandler._transition_time = datetime.now().isoformat()[:19]
         wiringpi.digitalWrite(VALVE_GPIO, int(ValveHandler._valve_state))
         self.finish(ValveHandler.get_state())
 
     @staticmethod
     def get_state():
         return {
-            'valve': ValveHandler._valve_state
+            'valve': ValveHandler._valve_state,
+            'transition_time': ValveHandler._transition_time
         }
 
 

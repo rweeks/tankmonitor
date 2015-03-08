@@ -53,6 +53,14 @@ var tankmonitor = {
         $('button.valve-state-btn').text(btn_msg).removeClass('disabled');
     },
 
+    clear_valve_control_error: function() {
+        $('p.valve-control-error').text('');
+    },
+
+    show_valve_control_error: function(jqXHR, textStatus, errorThrown) {
+        $('p.valve-control-error').text(textStatus);
+    },
+
     on_load: function () {
         var event_sock = new SockJS('/event');
         event_sock.onmessage = function (e) {
@@ -69,10 +77,13 @@ var tankmonitor = {
             $.get('/valve', tankmonitor.render_valve_state);
         });
         $('button.valve-state-btn').on('click', function () {
-            $.post('/valve', tankmonitor.render_valve_state);
-        }).fail(function() {
-            console.log("Error setting valve state");
-            console.dir(this);
+            tankmonitor.clear_valve_control_error();
+            $.ajax({
+                type:'POST',
+                url:'/valve',
+                success: tankmonitor.render_valve_state,
+                error: tankmonitor.show_valve_control_error
+            });
         });
     }
 };

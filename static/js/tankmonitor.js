@@ -58,7 +58,7 @@ var tankmonitor = {
     },
 
     show_valve_control_error: function(jqXHR, textStatus, errorThrown) {
-        $('p.valve-control-error').text(textStatus);
+        $('p.valve-control-error').text(errorThrown);
     },
 
     on_load: function () {
@@ -74,6 +74,7 @@ var tankmonitor = {
             tankmonitor.setup_graph($(elem));
         });
         $('#valve-tab-link').on('shown.bs.tab', function () {
+            tankmonitor.clear_valve_control_error();
             $.get('/valve', tankmonitor.render_valve_state);
         });
         $('button.valve-state-btn').on('click', function () {

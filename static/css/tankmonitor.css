@@ -21,3 +21,7 @@
 #valve div.row {
     padding-bottom: 15px;
 }
+
+span.valve-state-desc {
+    margin-right: 20px;
+}

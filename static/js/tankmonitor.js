@@ -46,9 +46,9 @@ var tankmonitor = {
             state_msg = "Unknown valve state.",
             btn_msg = "Toggle Valve";
         v_transition = (v_transition == null) ? "" : " since " + v_transition;
-        state_msg = v_state ? "Valve is open (GPIO low)" + v_transition :
-        "Valve is closed (GPIO high)" + v_transition;
-        btn_msg = v_state ? "Close Valve" : "Open Valve";
+        state_msg = v_state ? "Valve is closed (GPIO High)" + v_transition :
+        "Valve is open (GPIO low)" + v_transition;
+        btn_msg = v_state ? "Open Valve" : "Close Valve";
         $('.valve-state-desc').text(state_msg);
         $('button.valve-state-btn').text(btn_msg).removeClass('disabled');
     },

@@ -17,3 +17,7 @@
 .tankchart .nv-lineChart text {
     font-size: 0.75em;
 }
+
+#valve div.row {
+    padding-bottom: 15px;
+}

@@ -32,8 +32,9 @@ disp_contrast_off = 0x80
 disp_font = ImageFont.truetype("/usr/share/fonts/truetype/freefont/FreeMonoBold.ttf", 34)
 disp_font_sm = ImageFont.truetype("/usr/share/fonts/truetype/freefont/FreeMonoBold.ttf", 9)
 
-BTN_IN = 2   # wiringpi pin IDs
-BTN_OUT = 3  # wiringpi pin IDs
+BTN_IN = 2   # wiringpi pin ID
+BTN_OUT = 3  # wiringpi pin ID
+VALVE_GPIO = 6   # wiringpi pin ID
 
 thread_pool = ThreadPoolExecutor(2)
 
@@ -89,6 +90,35 @@ class LogDownloadHandler(RequestHandler):
             self.write('\t')
             self.write(str(record.depth))
             self.write('\n')
+
+
+class ValveHandler(RequestHandler):
+    """Callers can use the GET method to get the status of the creek intake valve and use the
+       POST method to toggle the status of the creek intake valve.
+       In both cases the response is a json dict like so:
+       {
+          "valve": 0,
+       }
+       Indicating the current status of the valve: 0 means that the IO pin is low (the valve is
+       normally-open, so the valve will be open). 1 means that the IO pin is high and the valve is
+       closed."""
+
+    _valve_state = False
+
+    def get(self, *args, **kwargs):
+        self.finish(ValveHandler.get_state())
+
+    def post(self, *args, **kwargs):
+        ValveHandler._valve_state = not ValveHandler._valve_state
+        wiringpi.digitalWrite(VALVE_GPIO, int(ValveHandler._valve_state))
+        self.finish(ValveHandler.get_state())
+
+    @staticmethod
+    def get_state():
+        return {
+            'valve': ValveHandler._valve_state
+        }
+
 
 
 class TankMonitor(Application):
@@ -245,7 +275,8 @@ if __name__ == "__main__":
     event_router = SockJSRouter(EventConnection, '/event')
     handlers = [
         (r'/', MainPageHandler),
-        (r'/logger/(.*)', LogDownloadHandler)  # arg is log interval
+        (r'/logger/(.*)', LogDownloadHandler),  # arg is log interval
+        (r'/valve', ValveHandler)
     ]
     handlers += event_router.urls
     tornado_settings = {
@@ -260,6 +291,8 @@ if __name__ == "__main__":
     lcd.text("LCD Init")
     wiringpi.pinMode(BTN_OUT, 1)
     wiringpi.digitalWrite(BTN_OUT, 1)
+    wiringpi.pinMode(VALVE_GPIO, 1)
+    wiringpi.digitalWrite(VALVE_GPIO, 0)
     wiringpi.pinMode(BTN_IN, 0)
 
     app = TankMonitor(handlers, **tornado_settings)

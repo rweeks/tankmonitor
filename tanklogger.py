@@ -1,7 +1,7 @@
 from collections import deque, namedtuple
 
 default_max_log_records = 1000
-default_alert_threshold = -2.0
+default_alert_rate_threshold = -2.0
 TankLogRecord = namedtuple("TankLogRecord", "timestamp depth")
 TankAlert = namedtuple("TankAlert", "timestamp depth delta")
 
@@ -19,10 +19,10 @@ def find_delta(record, prev_rec):
 
 class TankLogger:
     def __init__(self, log_interval, max_log_records=default_max_log_records,
-                 alert_threshold=default_alert_threshold):
+                 alert_rate_threshold=default_alert_rate_threshold):
         self.log_interval = log_interval
         self.next_capture = 0
-        self.alert_threshold = alert_threshold
+        self.alert_rate_threshold = alert_rate_threshold
         self.records = deque(maxlen=max_log_records)
 
     def offer(self, tank_log_record):
@@ -34,7 +34,7 @@ class TankLogger:
             prev_rec = self.records[-1] if self.records else None
             if prev_rec:
                 interval, delta = find_delta(tank_log_record, prev_rec)
-                if delta is not None and delta > self.alert_threshold:
+                if delta is not None and delta < self.alert_rate_threshold:
                     return TankAlert(tank_log_record.timestamp,
                                      tank_log_record.depth,
                                      delta)

@@ -1,15 +1,23 @@
 from threading import Lock, Thread
 from tornado.web import Application, RequestHandler
 from tornado.httpserver import HTTPServer
+from tornado.template import Template
 from tornado.ioloop import IOLoop, PeriodicCallback
+from tornado.gen import coroutine
+from tornado.concurrent import run_on_executor
 from sockjs.tornado import SockJSRouter, SockJSConnection
 import logging
-from tanklogger import TankLogger, TankLogRecord
+from tanklogger import TankLogger, TankLogRecord, TankAlert
 from functools import partial
 from datetime import datetime
 from time import time
 from serial import Serial
-import settings
+from email.mime.text import MIMEText
+from concurrent.futures import ThreadPoolExecutor
+
+import smtplib
+
+import settings as appconfig
 from PIL import Image, ImageDraw, ImageFont
 import pcd8544.lcd as lcd
 import netifaces as ni
@@ -27,6 +35,7 @@ disp_font_sm = ImageFont.truetype("/usr/share/fonts/truetype/freefont/FreeMonoBo
 BTN_IN = 2   # wiringpi pin IDs
 BTN_OUT = 3  # wiringpi pin IDs
 
+thread_pool = ThreadPoolExecutor(2)
 
 class EventConnection(SockJSConnection):
     event_listeners = set()
@@ -67,9 +76,9 @@ class LogDownloadHandler(RequestHandler):
             elif fmt == 'tsv':
                 self.set_header('Content-Type', 'text/plain')
                 if deltas:
-                    self.write('"Timestamp"\t"Rate of Change (%s/min)"\n' % settings.LOG_UNIT)
+                    self.write('"Timestamp"\t"Rate of Change (%s/min)"\n' % appconfig.LOG_UNIT)
                 else:
-                    self.write('"Timestamp"\t"%s"\n' % settings.LOG_UNIT)
+                    self.write('"Timestamp"\t"%s"\n' % appconfig.LOG_UNIT)
                 self.write_tsv(records)
                 self.finish()
 
@@ -85,9 +94,11 @@ class LogDownloadHandler(RequestHandler):
 class TankMonitor(Application):
     def __init__(self, handlers=None, **settings):
         super(TankMonitor, self).__init__(handlers, **settings)
-        self.tensec_logger = TankLogger(10)
-        self.minute_logger = TankLogger(60)
-        self.hour_logger = TankLogger(3600)
+        rate_threshold = appconfig.ALERT_RATE_THRESHOLD
+        self.level_threshold = appconfig.ALERT_LEVEL_THRESHOLD
+        self.tensec_logger = TankLogger(10, alert_rate_threshold=rate_threshold)
+        self.minute_logger = TankLogger(60, alert_rate_threshold=rate_threshold)
+        self.hour_logger = TankLogger(3600, alert_rate_threshold=rate_threshold)
         self.latest_raw_val = None
         self.display_expiry = 0
 
@@ -98,13 +109,15 @@ class TankMonitor(Application):
         IOLoop.current().add_callback(partial(self._offer_log_record, time(),
                                               tank_depth))
 
+    @coroutine
     def _offer_log_record(self, timestamp, depth):
         log_record = TankLogRecord(timestamp=timestamp, depth=depth)
+        if depth < self.level_threshold:
+            yield AlertMailer.offer(TankAlert(timestamp=timestamp, depth=depth, delta=None))
         for logger in self.tensec_logger, self.minute_logger, self.hour_logger:
             alert = logger.offer(log_record)
             if alert:
-                # TODO: e-mail alert
-                AlertMailer.offer(alert)
+                yield AlertMailer.offer(alert)
         EventConnection.notify_all({
             'event': 'log_value',
             'timestamp': timestamp,
@@ -171,7 +184,7 @@ class MaxbotixHandler():
 
     def calibrate(self, m, b):
         """ Defines the parameters for a linear equation y=mx+b, which is used
-        to convert the output of the sensor to a tank depth.
+        to convert the output of the sensor to whatever units are specified in the settings file.
         """
         log.info("Calibrating Maxbotix interface with m=%2.4f, b=%2.4f" % (m, b))
         self.calibrate_m = float(m)
@@ -194,13 +207,39 @@ class MaxbotixHandler():
 class AlertMailer(object):
 
     last_alert = None
+    alert_mail = Template(open('templates/tanklevel.txt', 'rb').read())
 
     @staticmethod
+    def send_message(alert_text, tank_alert):
+        msg = MIMEText(alert_text)
+        msg[
+            'Subject'] = "[TWUC Alert] Tank Level Warning" if not tank_alert.delta else "[TWUC Alert] Tank Delta Warning"
+        msg['From'] = appconfig.EMAIL['sending_address']
+        msg['To'] = ', '.join(appconfig.EMAIL['distribution'])
+        conn = None
+        try:
+            conn = smtplib.SMTP(
+                "%s:%d" % (appconfig.EMAIL['smtp_server'], appconfig.EMAIL['smtp_port']))
+            if appconfig.EMAIL['smtp_tls']:
+                conn.starttls()
+            conn.login(appconfig.EMAIL['sending_address'], appconfig.EMAIL['sending_password'])
+            conn.sendmail(appconfig.EMAIL['sending_address'], appconfig.EMAIL['distribution'],
+                          msg.as_string())
+        finally:
+            if conn:
+                conn.quit()
+
+    @staticmethod
+    @coroutine
     def offer(tank_alert):
-        log.warn("Sending e-mail alert due to " + str(tank_alert))
+        offer_time = time()
         if AlertMailer.last_alert is None or \
-                (time() - AlertMailer.last_alert) > settings.EMAIL['period']:
-            pass
+                (offer_time - AlertMailer.last_alert) > appconfig.EMAIL['period']:
+            alert_text = AlertMailer.alert_mail.generate(alert=tank_alert)
+            log.warn("Sending e-mail alert due to " + str(tank_alert))
+            log.warn(alert_text)
+            AlertMailer.last_alert = offer_time
+            yield thread_pool.submit(lambda: AlertMailer.send_message(alert_text, tank_alert))
 
 if __name__ == "__main__":
     event_router = SockJSRouter(EventConnection, '/event')
@@ -225,8 +264,8 @@ if __name__ == "__main__":
 
     app = TankMonitor(handlers, **tornado_settings)
     maxbotix = MaxbotixHandler(tank_monitor=app, port='/dev/ttyAMA0', timeout=10)
-    maxbotix.calibrate(settings.MAXBOTICS['calibrate_m'],
-                       settings.MAXBOTICS['calibrate_b'])
+    maxbotix.calibrate(appconfig.MAXBOTICS['calibrate_m'],
+                       appconfig.MAXBOTICS['calibrate_b'])
     ioloop = IOLoop.instance()
     disp_print_cb = PeriodicCallback(app.update_display, callback_time=500, io_loop=ioloop)
     disp_print_cb.start()

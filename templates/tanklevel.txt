@@ -1,0 +1,18 @@
+{% import settings as appconfig %}
+{% from datetime import datetime %}
+{% if alert.delta %}
+WARNING: Tank level rate of change is {{"%2.2f" % alert.delta}} {{appconfig.LOG_UNIT}}/minute.
+         This exceeds the threshold of {{"%2.2f" % appconfig.ALERT_RATE_THRESHOLD}} {{appconfig.LOG_UNIT}}/minute.
+
+         Timestamp: {{datetime.fromtimestamp(alert.timestamp).strftime("%Y-%m-%d %H:%M:%S")}}
+         Level: {{"%2.2f" % alert.depth}} {{appconfig.LOG_UNIT}}
+{% else %}
+WARNING: Tank level is {{"%2.2f" % alert.depth}} {{appconfig.LOG_UNIT}}.
+         This is below the threshold of {{appconfig.ALERT_LEVEL_THRESHOLD}} {{appconfig.LOG_UNIT}}.
+
+         Timestamp: {{datetime.fromtimestamp(alert.timestamp).strftime("%Y-%m-%d %H:%M:%S")}}
+{% end %}
+
+You are receiving this message because you have been included on the distribution list for the
+Thunderbird Creek Tank Monitor. Please contact Brian Weeks (wcs@shaw.ca) if you wish to be removed
+from this list.

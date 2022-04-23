@@ -1,4 +1,4 @@
-{% from settings import LOG_UNIT %}
+{% from settings import LOG_UNITS %}
 {% from tankmonitor import CATEGORY_LABELS %}
 <!DOCTYPE html>
 <html lang="en">
@@ -48,7 +48,7 @@
                       </div>
                       <div class="tankchart" id="{{ css_id }}"
                            data-json-src="{{ uri }}?format=nvd3" data-time-fmt="{{ time_fmt }}"
-                           data-log-unit="{{ LOG_UNIT }}">
+                           data-log-unit="{{ LOG_UNITS[category] }}">
                           <svg></svg>
                       </div>
                     </div>
@@ -71,7 +71,7 @@
                       </div>
                       <div class="tankchart" id="{{ css_id }}"
                            data-json-src="{{ uri }}&format=nvd3" data-time-fmt="{{ time_fmt }}"
-                           data-log-unit="{{ LOG_UNIT }}/minute">
+                           data-log-unit="{{ LOG_UNITS[category] }}/minute">
                           <svg></svg>
                       </div>
                     </div>

@@ -67,7 +67,7 @@ var tankmonitor = {
             category = $('.category-select:visible').find(":selected").text();
         }
         $('.metric-category').hide();
-        $('.metric-category, [data-customerID="' + category + '"]').show();
+        $('.metric-category[data-category="' + category + '"]').show();
     },
 
     on_load: function () {

@@ -5,6 +5,13 @@ MAXBOTICS = dict(
 
 LOG_UNIT = "% full"
 
+LOG_UNITS = {
+    'depth': 'litres',
+    'density': 'density',
+    'water_temp': 'degrees C',
+    'ambient_temp': 'degrees C'
+}
+
 EMAIL = dict(
     period=3600,   # Minimum time in seconds between alert emails.
     smtp_server="smtp.gmail.com",

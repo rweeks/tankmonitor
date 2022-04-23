@@ -261,6 +261,8 @@ class MaxbotixHandler:
                 print "Unable to convert value '" + str(val) + "'"
                 import traceback
                 traceback.print_exc()
+            finally:
+                sleep(2)
 
     def calibrate(self, m, b):
         """ Defines the parameters for a linear equation y=mx+b, which is used
@@ -305,7 +307,8 @@ class DensitrakHandler:
                     self.send_command(b'\x01\x31\x41\x38\x38\x30\x0D\x00'))
             except:
                 pass
-        sleep(1)
+            finally:
+                sleep(2)
 
     def send_command(self, command):
         self.serial_port.flush()

@@ -32,7 +32,7 @@
               <div class="metric-category metric-{{ category }}">
 {% for label, css_id, uri, time_fmt in [('10-Second Updates', 'chart-10sec', '/logger/' + category + '/10', '%X'),
                               ('1-Minute Updates', 'chart-1min', '/logger/' + category + '/60', '%X'),
-                              ('1-Hour Updates', 'chart-1hour', '/logger/' + category + '3600', '%x'),] %}
+                              ('1-Hour Updates', 'chart-1hour', '/logger/' + category + '/3600', '%x'),] %}
                   <div class="row">
                     <div class="col-lg-12">
                       <div class="header">

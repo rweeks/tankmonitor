@@ -70,6 +70,7 @@ class LogDownloadHandler(RequestHandler):
             raise Exception("No logger matching " + logger_interval)
         logger = loggers[0]
         records = logger.deltas if deltas else logger.records
+        log.info("Returning %d records for %s" % (len(records), category))
         if fmt == 'nvd3':
             self.finish({'key': category,
                          'values': list(records)})

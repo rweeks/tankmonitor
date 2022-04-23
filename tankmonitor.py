@@ -147,7 +147,7 @@ class TankMonitor(Application):
                 TankLogger(60, alert_rate_threshold=rate_threshold),
                 TankLogger(3600, alert_rate_threshold=rate_threshold)
             ],
-            'water_quality': [
+            'density': [
                 TankLogger(10, alert_rate_threshold=None),
                 TankLogger(60, alert_rate_threshold=None),
                 TankLogger(3600, alert_rate_threshold=None)
@@ -167,24 +167,24 @@ class TankMonitor(Application):
         self.display_expiry = 0
 
     def log_tank_depth(self, tank_depth):
-        """This method can be called from outside the app's IOLoop. It's the
-        only method that can be called like that"""
+        """The log* methods can be called from outside the app's IOLoop. They're the
+        only methods that can be called like that"""
         log.debug("Logging depth: " + str(tank_depth))
         IOLoop.current().add_callback(partial(self._offer_log_record, 'depth', time(),
                                               tank_depth))
 
-    def log_water_quality(self, water_quality):
-        log.info("Logging water quality: " + str(water_quality))
-        IOLoop.current().add_callback(partial(self._offer_log_record, 'water_quality', time(),
-                                              water_quality))
+    def log_density(self, density):
+        log.debug("Logging density: " + str(density))
+        IOLoop.current().add_callback(partial(self._offer_log_record, 'density', time(),
+                                              density))
 
     def log_water_temp(self, water_temp):
-        log.info("Logging water temp: " + str(water_temp))
+        log.debug("Logging water temp: " + str(water_temp))
         IOLoop.current().add_callback(partial(self._offer_log_record, 'water_temp', time(),
                                               water_temp))
 
     def log_ambient_temp(self, ambient_temp):
-        log.info("Logging ambient temp: " + str(ambient_temp))
+        log.debug("Logging ambient temp: " + str(ambient_temp))
         IOLoop.current().add_callback(partial(self._offer_log_record, 'ambient_temp', time(),
                                               ambient_temp))
 
@@ -297,7 +297,7 @@ class DensitrakHandler:
         log.info("Starting Densitrak read")
         while not self.stop_reading:
             try:
-                self.tank_monitor.log_water_quality(
+                self.tank_monitor.log_density(
                     self.send_command(b'\x01\x31\x41\x34\x36\x30\x0D\x00'))
                 self.tank_monitor.log_water_temp((5.0/9) * (
                     self.send_command(b'\x01\x31\x41\x34\x31\x30\x0D\x00') - 32.0))

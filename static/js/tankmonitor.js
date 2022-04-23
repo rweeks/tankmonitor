@@ -72,7 +72,7 @@ var tankmonitor = {
     },
 
     on_load: function () {
-        $('.category-select').on('select', tankmonitor.select_category);
+        $('.category-select').on('change', function() { tankmonitor.select_category(); });
         tankmonitor.select_category('depth')
         var event_sock = new SockJS('/event');
         event_sock.onmessage = function (e) {

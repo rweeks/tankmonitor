@@ -29,7 +29,7 @@
       </ul>
       <div class="tab-content">
           <div class="tab-pane active" id="levels">
-              <label for="category-select">View:</label>
+              <label for="category-select-levels">View:</label>
               <select class="category-select" name="category-select-levels" id="category-select-levels">
               {% for category in ["depth", "density", "water_temp", "ambient_temp"] %}
                   <option value="{{ category }}">{{ CATEGORY_LABELS[category] }}</option>
@@ -58,6 +58,12 @@
 {% end %}
           </div>
           <div class="tab-pane" id="deltas">
+              <label for="category-select-deltas">View:</label>
+              <select class="category-select" name="category-select-deltas" id="category-select-deltas">
+                  {% for category in ["depth", "density", "water_temp", "ambient_temp"] %}
+                  <option value="{{ category }}">{{ CATEGORY_LABELS[category] }}</option>
+                  {% end %}
+              </select>
 {% for category in ["depth", "density", "water_temp", "ambient_temp"] %}
               <div class="metric-category" data-category="{{ category }}">
 {% for label, css_id, uri, time_fmt in [('10-Second Updates', 'dt-10sec', '/logger/' + category + '/10?deltas=true', '%X'),

@@ -1,4 +1,5 @@
 {% from settings import LOG_UNIT %}
+{% from tankmonitor import CATEGORY_LABELS %}
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -28,8 +29,14 @@
       </ul>
       <div class="tab-content">
           <div class="tab-pane active" id="levels">
+              <label for="category-select">View:</label>
+              <select class="category-select" name="category-select-levels" id="category-select-levels">
+              {% for category in ["depth", "density", "water_temp", "ambient_temp"] %}
+                  <option value="{{ category }}">{{ CATEGORY_LABELS[category] }}</option>
+              {% end %}
+              </select>
 {% for category in ["depth", "density", "water_temp", "ambient_temp"] %}
-              <div class="metric-category metric-{{ category }}">
+              <div class="metric-category" data-category="{{ category }}">
 {% for label, css_id, uri, time_fmt in [('10-Second Updates', 'chart-10sec', '/logger/' + category + '/10', '%X'),
                               ('1-Minute Updates', 'chart-1min', '/logger/' + category + '/60', '%X'),
                               ('1-Hour Updates', 'chart-1hour', '/logger/' + category + '/3600', '%x'),] %}
@@ -52,7 +59,7 @@
           </div>
           <div class="tab-pane" id="deltas">
 {% for category in ["depth", "density", "water_temp", "ambient_temp"] %}
-              <div class="metric-category metric-{{ category }}">
+              <div class="metric-category" data-category="{{ category }}">
 {% for label, css_id, uri, time_fmt in [('10-Second Updates', 'dt-10sec', '/logger/' + category + '/10?deltas=true', '%X'),
                               ('1-Minute Updates', 'dt-1min', '/logger/' + category + '/60?deltas=true', '%X'),
                               ('1-Hour Updates', 'dt-1hour', '/logger/' + category + '/3600?deltas=true', '%x'),] %}

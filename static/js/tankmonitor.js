@@ -61,7 +61,17 @@ var tankmonitor = {
         $('p.valve-control-error').text(errorThrown);
     },
 
+    select_category: function(category) {
+        console.log("In select_category, category == " + category);
+        if (category == null) {
+            category = $('.category-select:visible').find(":selected").text();
+        }
+        $('.metric-category').hide();
+        $('.metric-category, [data-customerID="' + category + '"]').show();
+    },
+
     on_load: function () {
+        tankmonitor.select_category('depth')
         var event_sock = new SockJS('/event');
         event_sock.onmessage = function (e) {
             var $current_depth = $('#current-value');

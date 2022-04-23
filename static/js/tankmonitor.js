@@ -64,13 +64,15 @@ var tankmonitor = {
     select_category: function(category) {
         console.log("In select_category, category == " + category);
         if (category == null) {
-            category = $('.category-select:visible').find(":selected").text();
+            category = $('.category-select:visible').val();
         }
+        console.log("Using category == " + category);
         $('.metric-category').hide();
         $('.metric-category[data-category="' + category + '"]').show();
     },
 
     on_load: function () {
+        $('.category-select').on('select', tankmonitor.select_category);
         tankmonitor.select_category('depth')
         var event_sock = new SockJS('/event');
         event_sock.onmessage = function (e) {

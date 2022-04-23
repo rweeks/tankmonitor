@@ -1,9 +1,9 @@
 from collections import deque, namedtuple
 
-default_max_log_records = 1000
+default_max_log_records = 1440
 default_alert_rate_threshold = -2.0
-TankLogRecord = namedtuple("TankLogRecord", "timestamp depth")
-TankAlert = namedtuple("TankAlert", "timestamp depth delta")
+TankLogRecord = namedtuple("TankLogRecord", "timestamp value")
+TankAlert = namedtuple("TankAlert", "timestamp value delta")
 
 
 def find_delta(record, prev_rec):
@@ -14,7 +14,7 @@ def find_delta(record, prev_rec):
     interval = record.timestamp - prev_rec.timestamp
     if interval == 0:
         return None, None
-    return interval, 60.0 * (record.depth - prev_rec.depth) / interval
+    return interval, 60.0 * (record.value - prev_rec.value) / interval
 
 
 class TankLogger:
@@ -34,9 +34,9 @@ class TankLogger:
             prev_rec = self.records[-1] if self.records else None
             if prev_rec:
                 interval, delta = find_delta(tank_log_record, prev_rec)
-                if delta is not None and delta < self.alert_rate_threshold:
+                if delta is not None and self.alert_rate_threshold is not None and delta < self.alert_rate_threshold:
                     return TankAlert(tank_log_record.timestamp,
-                                     tank_log_record.depth,
+                                     tank_log_record.value,
                                      delta)
 
     @property
@@ -52,8 +52,8 @@ class TankLogger:
                 continue
             dlog.append(TankLogRecord(
                 timestamp=prev_rec.timestamp + 0.5*interval,
-                # Actually change in depth per minute
-                depth=delta
+                # Actually change in value per minute
+                value=delta
             ))
             prev_rec = record
         return dlog

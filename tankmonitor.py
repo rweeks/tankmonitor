@@ -10,11 +10,11 @@ import logging
 from tanklogger import TankLogger, TankLogRecord, TankAlert
 from functools import partial
 from datetime import datetime
-from time import time
+from time import time, sleep
 from serial import Serial
 from email.mime.text import MIMEText
 from concurrent.futures import ThreadPoolExecutor
-
+import struct
 import smtplib
 import base64
 import settings as appconfig
@@ -58,38 +58,35 @@ class MainPageHandler(RequestHandler):
     def get(self, *args, **kwargs):
         self.render('main.html')
 
-logger_map = {
-    '10': 'tensec_logger',
-    '60': 'minute_logger',
-    '3600': 'hour_logger'
-}
-
 
 class LogDownloadHandler(RequestHandler):
     def get(self, logger_interval):
         fmt = self.get_argument('format', 'nvd3')  # or tsv
         deltas = self.get_argument('deltas', False)
-        logger = getattr(self.application, logger_map[logger_interval], None)
-        if logger:
-            records = logger.deltas if deltas else logger.records
-            if fmt == 'nvd3':
-                self.finish({'key': 'Tank Level',
-                             'values': list(records)})
-            elif fmt == 'tsv':
-                self.set_header('Content-Type', 'text/plain')
-                if deltas:
-                    self.write('"Timestamp"\t"Rate of Change (%s/min)"\n' % appconfig.LOG_UNIT)
-                else:
-                    self.write('"Timestamp"\t"%s"\n' % appconfig.LOG_UNIT)
-                self.write_tsv(records)
-                self.finish()
+        loggers = getattr(self.application, 'loggers', None)
+        loggers = filter(lambda l: l.log_interval == int(logger_interval), loggers['depth'])
+        if not loggers:
+            raise Exception("No logger matching " + logger_interval)
+        logger = loggers[0]
+        records = logger.deltas if deltas else logger.records
+        if fmt == 'nvd3':
+            self.finish({'key': 'Tank Level',
+                         'values': list(records)})
+        elif fmt == 'tsv':
+            self.set_header('Content-Type', 'text/plain')
+            if deltas:
+                self.write('"Timestamp"\t"Rate of Change (%s/min)"\n' % appconfig.LOG_UNIT)
+            else:
+                self.write('"Timestamp"\t"%s"\n' % appconfig.LOG_UNIT)
+            self.write_tsv(records)
+            self.finish()
 
     def write_tsv(self, records):
         for record in records:
             timestamp = datetime.fromtimestamp(record.timestamp).strftime('%Y-%m-%d %H:%M:%S')
             self.write(str(timestamp))
             self.write('\t')
-            self.write(str(record.depth))
+            self.write(str(record.value))
             self.write('\n')
 
 
@@ -138,15 +135,33 @@ class ValveHandler(RequestHandler):
         }
 
 
-
 class TankMonitor(Application):
     def __init__(self, handlers=None, **settings):
         super(TankMonitor, self).__init__(handlers, **settings)
         rate_threshold = appconfig.ALERT_RATE_THRESHOLD
         self.level_threshold = appconfig.ALERT_LEVEL_THRESHOLD
-        self.tensec_logger = TankLogger(10, alert_rate_threshold=rate_threshold)
-        self.minute_logger = TankLogger(60, alert_rate_threshold=rate_threshold)
-        self.hour_logger = TankLogger(3600, alert_rate_threshold=rate_threshold)
+        self.loggers = {
+            'depth': [
+                TankLogger(10, alert_rate_threshold=rate_threshold),
+                TankLogger(60, alert_rate_threshold=rate_threshold),
+                TankLogger(3600, alert_rate_threshold=rate_threshold)
+            ],
+            'water_quality': [
+                TankLogger(10, alert_rate_threshold=None),
+                TankLogger(60, alert_rate_threshold=None),
+                TankLogger(3600, alert_rate_threshold=None)
+            ],
+            'water_temp': [
+                TankLogger(10, alert_rate_threshold=None),
+                TankLogger(60, alert_rate_threshold=None),
+                TankLogger(3600, alert_rate_threshold=None)
+            ],
+            'ambient_temp': [
+                TankLogger(10, alert_rate_threshold=None),
+                TankLogger(60, alert_rate_threshold=None),
+                TankLogger(3600, alert_rate_threshold=None)
+            ]
+        }
         self.latest_raw_val = None
         self.display_expiry = 0
 
@@ -154,22 +169,38 @@ class TankMonitor(Application):
         """This method can be called from outside the app's IOLoop. It's the
         only method that can be called like that"""
         log.debug("Logging depth: " + str(tank_depth))
-        IOLoop.current().add_callback(partial(self._offer_log_record, time(),
+        IOLoop.current().add_callback(partial(self._offer_log_record, 'depth', time(),
                                               tank_depth))
 
+    def log_water_quality(self, water_quality):
+        log.info("Logging water quality: " + str(water_quality))
+        IOLoop.current().add_callback(partial(self._offer_log_record, 'water_quality', time(),
+                                              water_quality))
+
+    def log_water_temp(self, water_temp):
+        log.info("Logging water temp: " + str(water_temp))
+        IOLoop.current().add_callback(partial(self._offer_log_record, 'water_temp', time(),
+                                              water_temp))
+
+    def log_ambient_temp(self, ambient_temp):
+        log.info("Logging ambient temp: " + str(ambient_temp))
+        IOLoop.current().add_callback(partial(self._offer_log_record, 'ambient_temp', time(),
+                                              ambient_temp))
+
     @coroutine
-    def _offer_log_record(self, timestamp, depth):
-        log_record = TankLogRecord(timestamp=timestamp, depth=depth)
-        if depth < self.level_threshold:
-            yield AlertMailer.offer(TankAlert(timestamp=timestamp, depth=depth, delta=None))
-        for logger in self.tensec_logger, self.minute_logger, self.hour_logger:
+    def _offer_log_record(self, category, timestamp, value):
+        log_record = TankLogRecord(timestamp=timestamp, value=value)
+        if category == 'depth' and value < self.level_threshold:
+            yield AlertMailer.offer(TankAlert(timestamp=timestamp, value=value, delta=None))
+        for logger in self.loggers[category]:
             alert = logger.offer(log_record)
             if alert:
                 yield AlertMailer.offer(alert)
         EventConnection.notify_all({
             'event': 'log_value',
             'timestamp': timestamp,
-            'value': depth
+            'category': category,
+            'value': value
         })
 
     def update_display(self):
@@ -203,7 +234,7 @@ class TankMonitor(Application):
         IOLoop.instance().add_callback(self._set_latest_raw_val, val)
 
 
-class MaxbotixHandler():
+class MaxbotixHandler:
     def __init__(self, tank_monitor, **kwargs):
         """kwargs will be passed through to the serial port constructor"""
         self.port_lock = Lock()
@@ -252,6 +283,38 @@ class MaxbotixHandler():
             self.serial_port = Serial(**kwargs)
 
 
+class DensitrakHandler:
+
+    def __init__(self, tank_monitor, device_name):
+        self.device_name = device_name
+        self.stop_reading = False
+        self.serial_port = Serial(device_name, baudrate=115200)
+        self.tank_monitor = tank_monitor
+
+    def read(self):
+        log.info("Starting Densitrak read")
+        while not self.stop_reading:
+            self.tank_monitor.log_water_quality(
+                self.send_command(b'\x01\x31\x41\x34\x36\x30\x0D\x00'))
+            self.tank_monitor.log_water_temp(
+                self.send_command(b'\x01\x31\x41\x34\x31\x30\x0D\x00'))
+            self.tank_monitor.log_ambient_temp(
+                self.send_command(b'\x01\x31\x41\x3F\x38\x30\x0D\x00'))
+        sleep(1)
+
+    def send_command(self, command):
+        self.serial_port.write(command)
+        response = self.serial_port.read(16)
+        # TODO: error checking etc.
+        encoded_value = response[7:-1]
+        return struct.unpack('>f', bytearray.fromhex(encoded_value))[0]
+
+    def shutdown(self):
+        self.stop_reading = True
+
+
+
+
 class AlertMailer(object):
 
     last_alert = None
@@ -288,6 +351,7 @@ class AlertMailer(object):
             log.warn(alert_text)
             AlertMailer.last_alert = offer_time
             yield thread_pool.submit(lambda: AlertMailer.send_message(alert_text, tank_alert))
+
 
 if __name__ == "__main__":
     event_router = SockJSRouter(EventConnection, '/event')
@@ -328,4 +392,9 @@ if __name__ == "__main__":
     maxbotix_thread = Thread(target=maxbotix.read)
     maxbotix_thread.daemon = True
     maxbotix_thread.start()
+
+    densitrak = DensitrakHandler(app, '/dev/ttyUSB0')
+    densitrak_thread = Thread(target=densitrak.read)
+    densitrak_thread.daemon = True
+    densitrak_thread.start()
     ioloop.start()

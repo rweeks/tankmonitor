@@ -7,6 +7,7 @@ from tornado.gen import coroutine
 from tornado.concurrent import run_on_executor
 from sockjs.tornado import SockJSRouter, SockJSConnection
 import logging
+import binascii
 from tanklogger import TankLogger, TankLogRecord, TankAlert
 from functools import partial
 from datetime import datetime
@@ -288,31 +289,37 @@ class DensitrakHandler:
     def __init__(self, tank_monitor, device_name):
         self.device_name = device_name
         self.stop_reading = False
-        self.serial_port = Serial(device_name, baudrate=115200)
+        self.serial_port = Serial(device_name, baudrate=115200, timeout=10)
         self.tank_monitor = tank_monitor
 
     def read(self):
+        self.serial_port.open()
         log.info("Starting Densitrak read")
         while not self.stop_reading:
-            self.tank_monitor.log_water_quality(
-                self.send_command(b'\x01\x31\x41\x34\x36\x30\x0D\x00'))
-            self.tank_monitor.log_water_temp(
-                self.send_command(b'\x01\x31\x41\x34\x31\x30\x0D\x00'))
-            self.tank_monitor.log_ambient_temp(
-                self.send_command(b'\x01\x31\x41\x3F\x38\x30\x0D\x00'))
+            try:
+                self.tank_monitor.log_water_quality(
+                    self.send_command(b'\x01\x31\x41\x34\x36\x30\x0D\x00'))
+                self.tank_monitor.log_water_temp((5.0/9) * (
+                    self.send_command(b'\x01\x31\x41\x34\x31\x30\x0D\x00') - 32.0))
+                self.tank_monitor.log_ambient_temp(
+                    self.send_command(b'\x01\x31\x41\x38\x38\x30\x0D\x00'))
+            except:
+                pass
         sleep(1)
 
     def send_command(self, command):
+        self.serial_port.flush()
         self.serial_port.write(command)
-        response = self.serial_port.read(16)
+        self.serial_port.flush()
+        response = self.serial_port.read(17)
+        self.serial_port.flush()
         # TODO: error checking etc.
-        encoded_value = response[7:-1]
-        return struct.unpack('>f', bytearray.fromhex(encoded_value))[0]
+        encoded_value = response[8:-1]
+        decoded_value = struct.unpack('>f', binascii.unhexlify(encoded_value))[0]
+        return decoded_value
 
     def shutdown(self):
         self.stop_reading = True
-
-
 
 
 class AlertMailer(object):

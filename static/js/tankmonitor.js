@@ -66,7 +66,7 @@ var tankmonitor = {
         event_sock.onmessage = function (e) {
             var $current_depth = $('#current-value');
             e = $.parseJSON(e.data);
-            if (e.event == 'log_value') {
+            if (e.event === 'log_value' && e.category === 'depth') {
                 $current_depth.html(e.value.toFixed());
             }
         };

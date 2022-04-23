@@ -61,17 +61,17 @@ class MainPageHandler(RequestHandler):
 
 
 class LogDownloadHandler(RequestHandler):
-    def get(self, logger_interval):
+    def get(self, category, logger_interval):
         fmt = self.get_argument('format', 'nvd3')  # or tsv
         deltas = self.get_argument('deltas', False)
         loggers = getattr(self.application, 'loggers', None)
-        loggers = filter(lambda l: l.log_interval == int(logger_interval), loggers['depth'])
+        loggers = filter(lambda l: l.log_interval == int(logger_interval), loggers[category])
         if not loggers:
             raise Exception("No logger matching " + logger_interval)
         logger = loggers[0]
         records = logger.deltas if deltas else logger.records
         if fmt == 'nvd3':
-            self.finish({'key': 'Tank Level',
+            self.finish({'key': category,
                          'values': list(records)})
         elif fmt == 'tsv':
             self.set_header('Content-Type', 'text/plain')
@@ -367,7 +367,7 @@ if __name__ == "__main__":
     event_router = SockJSRouter(EventConnection, '/event')
     handlers = [
         (r'/', MainPageHandler),
-        (r'/logger/(.*)', LogDownloadHandler),  # arg is log interval
+        (r'/logger/(.*)/(.*)', LogDownloadHandler),  # args are category, log interval
         (r'/valve', ValveHandler)
     ]
     handlers += event_router.urls

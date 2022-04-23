@@ -59,6 +59,12 @@ class MainPageHandler(RequestHandler):
     def get(self, *args, **kwargs):
         self.render('main.html')
 
+CATEGORY_LABELS = {
+    'depth': 'Volume',
+    'density': 'Water Quality',
+    'water_temp': 'Water Temperature',
+    'ambient_temp': 'Ambient Temperature'
+}
 
 class LogDownloadHandler(RequestHandler):
     def get(self, category, logger_interval):
@@ -72,7 +78,7 @@ class LogDownloadHandler(RequestHandler):
         records = logger.deltas if deltas else logger.records
         log.info("Returning %d records for %s" % (len(records), category))
         if fmt == 'nvd3':
-            self.finish({'key': category,
+            self.finish({'key': CATEGORY_LABELS[category],
                          'values': list(records)})
         elif fmt == 'tsv':
             self.set_header('Content-Type', 'text/plain')

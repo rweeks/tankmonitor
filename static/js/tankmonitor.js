@@ -19,10 +19,10 @@ var tankmonitor = {
                         })
                         .color(d3.scale.category10().range())
                     ;
-
+                var precision = units === "density" ? '0.04f' : '0.02f';
                 chart.yAxis
                     .axisLabel(units)
-                    .tickFormat(d3.format('.02f'));
+                    .tickFormat(d3.format(precision));
                 chart.xAxis
                     .axisLabel("Time")
                     .tickFormat(function (d) {
@@ -61,8 +61,14 @@ var tankmonitor = {
         $('p.valve-control-error').text(errorThrown);
     },
 
+    clear_current_value: function() {
+        $('#current-value').html('loading...');
+        $('#current-log-unit').html('');
+    },
+
     select_category: function(category) {
         console.log("In select_category, category == " + category);
+        tankmonitor.clear_current_value();
         if (category == null) {
             category = $('.category-select:visible').val();
         }
@@ -71,15 +77,21 @@ var tankmonitor = {
         $('.metric-category[data-category="' + category + '"]').show();
     },
 
+    get_selected_category: function() {
+        return $('.metric-category:visible').data('category')
+    },
+
     on_load: function () {
         $('.category-select').on('change', function() { tankmonitor.select_category(); });
         tankmonitor.select_category('depth')
         var event_sock = new SockJS('/event');
         event_sock.onmessage = function (e) {
             var $current_depth = $('#current-value');
+            var $current_unit = $('#current-log-unit')
             e = $.parseJSON(e.data);
-            if (e.event === 'log_value' && e.category === 'depth') {
+            if (e.event === 'log_value' && e.category === tankmonitor.get_selected_category()) {
                 $current_depth.html(e.value.toFixed());
+                $current_unit.html(e.unit)
             }
         };
         $('div.tankchart').each(function (ix, elem) {

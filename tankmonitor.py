@@ -62,7 +62,6 @@ CATEGORY_LABELS = {
     'depth': 'Volume',
     'density': 'Water Quality',
     'water_temp': 'Water Temperature',
-    'ambient_temp': 'Ambient Temperature'
 }
 
 class LogDownloadHandler(RequestHandler):
@@ -81,10 +80,11 @@ class LogDownloadHandler(RequestHandler):
                          'values': list(records)})
         elif fmt == 'tsv':
             self.set_header('Content-Type', 'text/plain')
+            log_unit = appconfig.LOG_UNITS[category]
             if deltas:
-                self.write('"Timestamp"\t"Rate of Change (%s/min)"\n' % appconfig.LOG_UNIT)
+                self.write('"Timestamp"\t"Rate of Change (%s/min)"\n' % log_unit)
             else:
-                self.write('"Timestamp"\t"%s"\n' % appconfig.LOG_UNIT)
+                self.write('"Timestamp"\t"%s"\n' % log_unit)
             self.write_tsv(records)
             self.finish()
 
@@ -162,11 +162,6 @@ class TankMonitor(Application):
                 TankLogger(10, alert_rate_threshold=None),
                 TankLogger(60, alert_rate_threshold=None),
                 TankLogger(3600, alert_rate_threshold=None)
-            ],
-            'ambient_temp': [
-                TankLogger(10, alert_rate_threshold=None),
-                TankLogger(60, alert_rate_threshold=None),
-                TankLogger(3600, alert_rate_threshold=None)
             ]
         }
         self.latest_raw_val = None
@@ -189,11 +184,6 @@ class TankMonitor(Application):
         IOLoop.current().add_callback(partial(self._offer_log_record, 'water_temp', time(),
                                               water_temp))
 
-    def log_ambient_temp(self, ambient_temp):
-        log.debug("Logging ambient temp: " + str(ambient_temp))
-        IOLoop.current().add_callback(partial(self._offer_log_record, 'ambient_temp', time(),
-                                              ambient_temp))
-
     @coroutine
     def _offer_log_record(self, category, timestamp, value):
         log_record = TankLogRecord(timestamp=timestamp, value=value)
@@ -205,6 +195,7 @@ class TankMonitor(Application):
                 yield AlertMailer.offer(alert)
         EventConnection.notify_all({
             'event': 'log_value',
+            'unit': appconfig.LOG_UNITS[category],
             'timestamp': timestamp,
             'category': category,
             'value': value
@@ -310,8 +301,6 @@ class DensitrakHandler:
                     self.send_command(b'\x01\x31\x41\x34\x36\x30\x0D\x00'))
                 self.tank_monitor.log_water_temp((5.0/9) * (
                     self.send_command(b'\x01\x31\x41\x34\x31\x30\x0D\x00') - 32.0))
-                self.tank_monitor.log_ambient_temp(
-                    self.send_command(b'\x01\x31\x41\x38\x38\x30\x0D\x00'))
             except:
                 pass
             finally:

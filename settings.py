@@ -8,8 +8,7 @@ LOG_UNIT = "% full"
 LOG_UNITS = {
     'depth': 'litres',
     'density': 'density',
-    'water_temp': 'degrees C',
-    'ambient_temp': 'degrees C'
+    'water_temp': 'degrees C'
 }
 
 EMAIL = dict(

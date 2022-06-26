@@ -19,7 +19,7 @@
 
     <div class="container">
       <div class="header">
-        <h3 class="pull-right">Currently: <span id="current-value" data-log-unit="{{ LOG_UNIT }}"></span> {{ LOG_UNIT }}</h3>
+          <h3 class="pull-right">Currently: <span id="current-value"></span> <span id="current-log-unit"></span></h3>
         <h3 class="text-muted">Thunderbird Creek Water Tank</h3>
       </div>
       <ul class="nav nav-tabs" role="tablist">
@@ -35,7 +35,7 @@
                   <option value="{{ category }}">{{ CATEGORY_LABELS[category] }}</option>
               {% end %}
               </select>
-{% for category in ["depth", "density", "water_temp", "ambient_temp"] %}
+{% for category in ["depth", "density", "water_temp"] %}
               <div class="metric-category" data-category="{{ category }}">
 {% for label, css_id, uri, time_fmt in [('10-Second Updates', 'chart-10sec', '/logger/' + category + '/10', '%X'),
                               ('1-Minute Updates', 'chart-1min', '/logger/' + category + '/60', '%X'),
@@ -60,7 +60,7 @@
           <div class="tab-pane" id="deltas">
               <label for="category-select-deltas">View:</label>
               <select class="category-select" name="category-select-deltas" id="category-select-deltas">
-                  {% for category in ["depth", "density", "water_temp", "ambient_temp"] %}
+                  {% for category in ["depth", "density", "water_temp"] %}
                   <option value="{{ category }}">{{ CATEGORY_LABELS[category] }}</option>
                   {% end %}
               </select>

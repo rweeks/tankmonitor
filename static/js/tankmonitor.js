@@ -81,6 +81,12 @@ var tankmonitor = {
         return $('.metric-category:visible').data('category')
     },
 
+    category_precision: {
+        'density': 4,
+        'water_temp': 1,
+        'depth': 0
+    },
+
     on_load: function () {
         $('.category-select').on('change', function() { tankmonitor.select_category(); });
         tankmonitor.select_category('depth')
@@ -90,8 +96,9 @@ var tankmonitor = {
             var $current_unit = $('#current-log-unit')
             e = $.parseJSON(e.data);
             if (e.event === 'log_value' && e.category === tankmonitor.get_selected_category()) {
-                $current_depth.html(e.value.toFixed());
-                $current_unit.html(e.unit)
+                $current_depth.html(e.value.toFixed(tankmonitor.category_precision[e.unit]));
+                var unit_label_html = e.category === 'density' ? 'g/cm<sup>3</sup>' : e.unit;
+                $current_unit.html(unit_label_html)
             }
         };
         $('div.tankchart').each(function (ix, elem) {

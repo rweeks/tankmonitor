@@ -25,3 +25,13 @@ CREDENTIALS = dict(
     username="admin",
     password="admin"
 )
+
+ALERT_THRESHOLDS = {
+    'depth': 10000.0,
+    'density': 1.005
+}
+
+ALERT_RATE_THRESHOLDS = {
+    'depth': -200.0,
+    'density': 0.02
+}

@@ -96,7 +96,7 @@ var tankmonitor = {
             var $current_unit = $('#current-log-unit')
             e = $.parseJSON(e.data);
             if (e.event === 'log_value' && e.category === tankmonitor.get_selected_category()) {
-                $current_depth.html(e.value.toFixed(tankmonitor.category_precision[e.unit]));
+                $current_depth.html(e.value.toFixed(tankmonitor.category_precision[e.category]));
                 var unit_label_html = e.category === 'density' ? 'g/cm<sup>3</sup>' : e.unit;
                 $current_unit.html(unit_label_html)
             }

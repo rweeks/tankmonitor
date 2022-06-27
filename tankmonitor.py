@@ -146,18 +146,19 @@ class ValveHandler(RequestHandler):
 class TankMonitor(Application):
     def __init__(self, handlers=None, **settings):
         super(TankMonitor, self).__init__(handlers, **settings)
-        rate_threshold = appconfig.ALERT_RATE_THRESHOLD
-        self.level_threshold = appconfig.ALERT_LEVEL_THRESHOLD
         self.loggers = {
             'depth': [
-                TankLogger(10, alert_rate_threshold=rate_threshold),
-                TankLogger(60, alert_rate_threshold=rate_threshold),
-                TankLogger(3600, alert_rate_threshold=rate_threshold)
+                TankLogger(10, alert_rate_threshold=appconfig.ALERT_RATE_THRESHOLDS['depth']),
+                TankLogger(60, alert_rate_threshold=appconfig.ALERT_RATE_THRESHOLDS['depth']),
+                TankLogger(3600, alert_rate_threshold=appconfig.ALERT_RATE_THRESHOLDS['depth'])
             ],
             'density': [
-                TankLogger(10, alert_rate_threshold=None),
-                TankLogger(60, alert_rate_threshold=None),
-                TankLogger(3600, alert_rate_threshold=None)
+                TankLogger(10, alert_rate_threshold=appconfig.ALERT_RATE_THRESHOLDS['density'],
+                           comparator=lambda d, t: d > t),
+                TankLogger(60, alert_rate_threshold=appconfig.ALERT_RATE_THRESHOLDS['density'],
+                           comparator=lambda d, t: d > t),
+                TankLogger(3600, alert_rate_threshold=appconfig.ALERT_RATE_THRESHOLDS['density'],
+                           comparator=lambda d, t: d > t),
             ],
             'water_temp': [
                 TankLogger(10, alert_rate_threshold=None),
@@ -188,8 +189,10 @@ class TankMonitor(Application):
     @coroutine
     def _offer_log_record(self, category, timestamp, value):
         log_record = TankLogRecord(timestamp=timestamp, value=value)
-        if category == 'depth' and value < self.level_threshold:
-            yield AlertMailer.offer(TankAlert(timestamp=timestamp, value=value, delta=None))
+        if category == 'depth' and value < appconfig.ALERT_THRESHOLDS['depth']:
+            yield AlertMailer.offer('depth', TankAlert(timestamp=timestamp, value=value, delta=None))
+        elif category == 'density' and value > appconfig.ALERT_THRESHOLDS['density']:
+            yield AlertMailer.offer('density', TankAlert(timestamp=timestamp, value=value, delta=None))
         for logger in self.loggers[category]:
             alert = logger.offer(log_record)
             if alert:
@@ -324,13 +327,27 @@ class DensitrakHandler:
 class AlertMailer(object):
 
     last_alert = None
-    alert_mail = Template(open('templates/tanklevel.txt', 'rb').read())
+    generic_alert_mail = Template(open('templates/generic_alert.txt', 'rb').read())
+
+    alert_config_by_category = {
+        'density': {
+            'alert_measurement_name': 'Water quality',
+            'alert_value_format': '%2.4f',
+            'log_unit': 'g/cm^3',
+        },
+
+        'depth': {
+            'alert_measurement_name': 'Tank level',
+            'alert_value_format': '%2.2f',
+            'log_unit': appconfig.LOG_UNITS['depth'],
+        }
+    }
 
     @staticmethod
     def send_message(alert_text, tank_alert):
         msg = MIMEText(alert_text)
         msg[
-            'Subject'] = "[TWUC Alert] Tank Level Warning" if not tank_alert.delta else "[TWUC Alert] Tank Delta Warning"
+            'Subject'] = "[TWUC Alert] Tank Warning" if not tank_alert.delta else "[TWUC Alert] Tank Delta Warning"
         msg['From'] = appconfig.EMAIL['sending_address']
         msg['To'] = ', '.join(appconfig.EMAIL['distribution'])
         conn = None
@@ -348,12 +365,15 @@ class AlertMailer(object):
 
     @staticmethod
     @coroutine
-    def offer(tank_alert):
+    def offer(category, tank_alert):
         offer_time = time()
         if AlertMailer.last_alert is None or \
                 (offer_time - AlertMailer.last_alert) > appconfig.EMAIL['period']:
-            alert_text = AlertMailer.alert_mail.generate(alert=tank_alert)
-            log.warn("Sending e-mail alert due to " + str(tank_alert))
+            alert_config = AlertMailer.alert_config_by_category[category].copy()
+            alert_config['alert'] = tank_alert
+            alert_config['alert_threshold'] = appconfig.ALERT_RATE_THRESHOLDS[category] if tank_alert.delta else appconfig.ALERT_THRESHOLDS[category]
+            alert_text = AlertMailer.generic_alert_mail.generate(**alert_config)
+            log.warn("Sending e-mail alert due to %s %s" % (category, str(tank_alert)))
             log.warn(alert_text)
             AlertMailer.last_alert = offer_time
             yield thread_pool.submit(lambda: AlertMailer.send_message(alert_text, tank_alert))

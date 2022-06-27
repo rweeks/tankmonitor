@@ -19,7 +19,8 @@ def find_delta(record, prev_rec):
 
 class TankLogger:
     def __init__(self, log_interval, max_log_records=default_max_log_records,
-                 alert_rate_threshold=default_alert_rate_threshold):
+                 alert_rate_threshold=default_alert_rate_threshold,
+                 comparator=lambda d, t : d < t):
         self.log_interval = log_interval
         self.next_capture = 0
         self.alert_rate_threshold = alert_rate_threshold
@@ -34,7 +35,7 @@ class TankLogger:
             prev_rec = self.records[-1] if self.records else None
             if prev_rec:
                 interval, delta = find_delta(tank_log_record, prev_rec)
-                if delta is not None and self.alert_rate_threshold is not None and delta < self.alert_rate_threshold:
+                if delta is not None and self.alert_rate_threshold is not None and self.comparator(delta, self.alert_rate_threshold):
                     return TankAlert(tank_log_record.timestamp,
                                      tank_log_record.value,
                                      delta)

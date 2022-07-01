@@ -1,3 +1,4 @@
+import sys
 from threading import Lock, Thread
 from tornado.web import Application, RequestHandler, HTTPError
 from tornado.httpserver import HTTPServer
@@ -75,7 +76,7 @@ class LogDownloadHandler(RequestHandler):
             raise Exception("No logger matching " + logger_interval)
         logger = loggers[0]
         records = logger.deltas if deltas else logger.records
-        log.info("Returning %d records for %s" % (len(records), category))
+        log.debug("Returning %d records for %s" % (len(records), category))
         if fmt == 'nvd3':
             self.finish({'key': CATEGORY_LABELS[category],
                          'values': list(records)})
@@ -305,7 +306,7 @@ class DensitrakHandler:
                 self.tank_monitor.log_water_temp((5.0/9) * (
                     self.send_command(b'\x01\x31\x41\x34\x31\x30\x0D\x00') - 32.0))
             except:
-                pass
+                log.debug("Failure reading densitrak", exc_info=sys.exc_info())
             finally:
                 sleep(2)
 

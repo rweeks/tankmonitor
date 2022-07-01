@@ -8,6 +8,8 @@ from tornado.gen import coroutine
 from tornado.concurrent import run_on_executor
 from sockjs.tornado import SockJSRouter, SockJSConnection
 import logging
+from logging.handlers import TimedRotatingFileHandler
+
 import binascii
 from tanklogger import TankLogger, TankLogRecord, TankAlert
 from functools import partial
@@ -28,6 +30,11 @@ import wiringpi2 as wiringpi
 logging.basicConfig()
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
+debugHandler = TimedRotatingFileHandler('tankmonitor-log', backupCount=24)
+debugHandler.setLevel(logging.DEBUG)
+debugHandler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+log.addHandler(debugHandler)
+
 listen_port = 4242
 disp_contrast_on = 0xB0
 disp_contrast_off = 0x80

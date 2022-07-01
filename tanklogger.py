@@ -20,11 +20,12 @@ def find_delta(record, prev_rec):
 class TankLogger:
     def __init__(self, log_interval, max_log_records=default_max_log_records,
                  alert_rate_threshold=default_alert_rate_threshold,
-                 comparator=lambda d, t : d < t):
+                 comparator=lambda d, t: d < t):
         self.log_interval = log_interval
         self.next_capture = 0
         self.alert_rate_threshold = alert_rate_threshold
         self.records = deque(maxlen=max_log_records)
+        self.comparator = comparator
 
     def offer(self, tank_log_record):
         """May add the given tank record to the buffer, if it hasn't already added a record to the

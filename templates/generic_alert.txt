@@ -13,4 +13,4 @@ WARNING: {{alert_measurement_name}} is {{alert_value_format % alert.value}} {{lo
 {% end %}
 
 You are receiving this message because you have been included on the distribution list for the
-Thunderbird Creek Tank Monitor. Please contact Brian Weeks (wcs@shaw.ca) to be removed from this list.
+Thunderbird Creek Tank Monitor. Please contact Brian Weeks (blweeks@shaw.ca) to be removed from this list.

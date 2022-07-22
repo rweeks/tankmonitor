@@ -73,6 +73,7 @@ var tankmonitor = {
             category = $('.category-select:visible').val();
         }
         console.log("Using category == " + category);
+        $('.category-select:hidden').val(category);
         $('.metric-category').hide();
         $('.metric-category[data-category="' + category + '"]').show();
     },

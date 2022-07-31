@@ -243,11 +243,11 @@ class TankMonitor(Application):
         """This method can be called from any thread."""
         IOLoop.instance().add_callback(self._set_latest_raw_val, val)
 
+SERIAL_LOCK = Lock()
 
 class MaxbotixHandler:
     def __init__(self, tank_monitor, **kwargs):
         """kwargs will be passed through to the serial port constructor"""
-        self.port_lock = Lock()
         self.serial_port = None
         self.set_serial_port(**kwargs)
         self.stop_reading = False
@@ -260,7 +260,7 @@ class MaxbotixHandler:
         val = None
         while not self.stop_reading:
             try:
-                with self.port_lock:
+                with SERIAL_LOCK:
                     val = self.serial_port.read()
                     if val == 'R':
                         val = self.serial_port.read(4)
@@ -291,7 +291,7 @@ class MaxbotixHandler:
         self.stop_reading = True
 
     def set_serial_port(self, **kwargs):
-        with self.port_lock:
+        with SERIAL_LOCK:
             self.serial_port = Serial(**kwargs)
 
 
@@ -318,15 +318,16 @@ class DensitrakHandler:
                 sleep(2)
 
     def send_command(self, command):
-        self.serial_port.flush()
-        self.serial_port.write(command)
-        self.serial_port.flush()
-        response = self.serial_port.read(17)
-        self.serial_port.flush()
-        # TODO: error checking etc.
-        encoded_value = response[8:-1]
-        decoded_value = struct.unpack('>f', binascii.unhexlify(encoded_value))[0]
-        return decoded_value
+        with SERIAL_LOCK:
+            self.serial_port.flush()
+            self.serial_port.write(command)
+            self.serial_port.flush()
+            response = self.serial_port.read(17)
+            self.serial_port.flush()
+            # TODO: error checking etc.
+            encoded_value = response[8:-1]
+            decoded_value = struct.unpack('>f', binascii.unhexlify(encoded_value))[0]
+            return decoded_value
 
     def shutdown(self):
         self.stop_reading = True

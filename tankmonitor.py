@@ -200,7 +200,7 @@ class TankMonitor(Application):
                                               water_temp))
 
     def log_distance(self, distance):
-        log.debug("Logging distance:" + str(distance))
+        # log.debug("Logging distance:" + str(distance))
         IOLoop.current().add_callback(partial(self._offer_log_record, 'distance', time(),
                                               distance))
 
@@ -269,21 +269,24 @@ class MaxbotixHandler:
     def read(self):
         log.info("Starting MaxbotixHandler read")
         val = None
+        read_count = 0
         while not self.stop_reading:
             try:
                 with SERIAL_LOCK:
                     val = self.serial_port.read()
                     if val == 'R':
                         val = self.serial_port.read(4)
-                        self.tank_monitor.set_latest_raw_val(val)
-                        self.tank_monitor.log_tank_depth(self.convert(val))
+                        read_count += 1
+                        if read_count % 20 == 0:  # cheesy kludge to avoid tons of logging
+                            self.tank_monitor.set_latest_raw_val(val)
+                            self.tank_monitor.log_tank_depth(self.convert(val))
                         self.tank_monitor.log_distance(int(val))
             except:
                 print "Unable to convert value '" + str(val) + "'"
                 import traceback
                 traceback.print_exc()
             finally:
-                sleep(2)
+                sleep(0.1)
 
     def calibrate(self, m, b):
         """ Defines the parameters for a linear equation y=mx+b, which is used

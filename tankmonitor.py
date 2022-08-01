@@ -277,7 +277,7 @@ class MaxbotixHandler:
                     if val == 'R':
                         val = self.serial_port.read(4)
                         read_count += 1
-                        if read_count % 20 == 0:  # cheesy kludge to avoid tons of logging
+                        if read_count % 5 == 0:  # cheesy kludge to avoid tons of logging
                             self.tank_monitor.set_latest_raw_val(val)
                             self.tank_monitor.log_tank_depth(self.convert(val))
                         self.tank_monitor.log_distance(int(val))

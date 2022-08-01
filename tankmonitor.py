@@ -8,7 +8,7 @@ from tornado.gen import coroutine
 from sockjs.tornado import SockJSRouter, SockJSConnection
 import logging
 from logging.handlers import TimedRotatingFileHandler
-
+import json
 import binascii
 from tanklogger import TankLogger, TankLogRecord, TankAlert
 from functools import partial
@@ -57,9 +57,14 @@ class EventConnection(SockJSConnection):
 
     @classmethod
     def notify_all(cls, msg_dict):
-        import json
+        failed_listeners = set()
         for event_listener in EventConnection.event_listeners:
-            event_listener.send(json.dumps(msg_dict))
+            try:
+                event_listener.send(json.dumps(msg_dict))
+            except:
+                log.debug('Removing listener ' + event_listener)
+                failed_listeners.append(event_listener)
+        EventConnection.event_listeners = EventConnection.event_listeners.difference(failed_listeners)
 
 
 class MainPageHandler(RequestHandler):

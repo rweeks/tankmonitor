@@ -71,6 +71,7 @@ CATEGORY_LABELS = {
     'depth': 'Volume',
     'density': 'Water Quality',
     'water_temp': 'Water Temperature',
+    'distance': 'Raw Maxbotix Reading'
 }
 
 class LogDownloadHandler(RequestHandler):
@@ -172,6 +173,11 @@ class TankMonitor(Application):
                 TankLogger(10, alert_rate_threshold=None),
                 TankLogger(60, alert_rate_threshold=None),
                 TankLogger(3600, alert_rate_threshold=None)
+            ],
+            'distance': [
+                TankLogger(10, alert_rate_threshold=None),
+                TankLogger(60, alert_rate_threshold=None),
+                TankLogger(3600, alert_rate_threshold=None)
             ]
         }
         self.latest_raw_val = None
@@ -193,6 +199,11 @@ class TankMonitor(Application):
         log.debug("Logging water temp: " + str(water_temp))
         IOLoop.current().add_callback(partial(self._offer_log_record, 'water_temp', time(),
                                               water_temp))
+
+    def log_distance(self, distance):
+        log.debug("Logging distance:" + str(distance))
+        IOLoop.current().add_callback(partial(self._offer_log_record, 'distance', time(),
+                                              distance))
 
     @coroutine
     def _offer_log_record(self, category, timestamp, value):
@@ -266,6 +277,7 @@ class MaxbotixHandler:
                         val = self.serial_port.read(4)
                         self.tank_monitor.set_latest_raw_val(val)
                         self.tank_monitor.log_tank_depth(self.convert(val))
+                        self.tank_monitor.log_distance(int(val))
             except:
                 print "Unable to convert value '" + str(val) + "'"
                 import traceback

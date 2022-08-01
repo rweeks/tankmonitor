@@ -31,11 +31,11 @@
           <div class="tab-pane active" id="levels">
               <label for="category-select-levels">View:</label>
               <select class="category-select" name="category-select-levels" id="category-select-levels">
-              {% for category in ["depth", "density", "water_temp"] %}
+              {% for category in ["depth", "density", "water_temp", "distance"] %}
                   <option value="{{ category }}">{{ CATEGORY_LABELS[category] }}</option>
               {% end %}
               </select>
-{% for category in ["depth", "density", "water_temp"] %}
+{% for category in ["depth", "density", "water_temp", "distance"] %}
               <div class="metric-category" data-category="{{ category }}">
 {% for label, css_id, uri, time_fmt in [('10-Second Updates', 'chart-10sec', '/logger/' + category + '/10', '%X'),
                               ('1-Minute Updates', 'chart-1min', '/logger/' + category + '/60', '%X'),
@@ -60,11 +60,11 @@
           <div class="tab-pane" id="deltas">
               <label for="category-select-deltas">View:</label>
               <select class="category-select" name="category-select-deltas" id="category-select-deltas">
-                  {% for category in ["depth", "density", "water_temp"] %}
+                  {% for category in ["depth", "density", "water_temp", "distance"] %}
                   <option value="{{ category }}">{{ CATEGORY_LABELS[category] }}</option>
                   {% end %}
               </select>
-{% for category in ["depth", "density", "water_temp"] %}
+{% for category in ["depth", "density", "water_temp", "distance"] %}
               <div class="metric-category" data-category="{{ category }}">
 {% for label, css_id, uri, time_fmt in [('10-Second Updates', 'dt-10sec', '/logger/' + category + '/10?deltas=true', '%X'),
                               ('1-Minute Updates', 'dt-1min', '/logger/' + category + '/60?deltas=true', '%X'),

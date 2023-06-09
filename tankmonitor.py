@@ -4,7 +4,6 @@ from tornado.httpserver import HTTPServer
 from tornado.template import Template
 from tornado.ioloop import IOLoop, PeriodicCallback
 from tornado.gen import coroutine
-from tornado.concurrent import run_on_executor
 from sockjs.tornado import SockJSRouter, SockJSConnection
 import logging
 import binascii
@@ -217,7 +216,8 @@ class TankMonitor(Application):
         if now < self.display_expiry:
             im = Image.new('1', (84, 48))
             draw = ImageDraw.Draw(im)
-            draw.text((0, 5), self.latest_raw_val, font=disp_font, fill=1)
+            if self.latest_raw_val is not None:
+                draw.text((0, 5), self.latest_raw_val, font=disp_font, fill=1)
             draw.text((0, 0), ip_addr, font=disp_font_sm, fill=1)
             draw.text((5, 36), "mm to surface", font=disp_font_sm, fill=1)
             lcd.show_image(im)
@@ -395,9 +395,6 @@ if __name__ == "__main__":
     wiringpi.pinMode(BTN_IN, 0)
 
     app = TankMonitor(handlers, **tornado_settings)
-    maxbotix = MaxbotixHandler(tank_monitor=app, port='/dev/ttyAMA0', timeout=10)
-    maxbotix.calibrate(appconfig.MAXBOTICS['calibrate_m'],
-                       appconfig.MAXBOTICS['calibrate_b'])
     ioloop = IOLoop.instance()
     disp_print_cb = PeriodicCallback(app.update_display, callback_time=500, io_loop=ioloop)
     disp_print_cb.start()
@@ -406,12 +403,20 @@ if __name__ == "__main__":
     http_server = HTTPServer(app)
     http_server.listen(listen_port)
     log.info("Listening on port " + str(listen_port))
-    maxbotix_thread = Thread(target=maxbotix.read)
-    maxbotix_thread.daemon = True
-    maxbotix_thread.start()
-
-    densitrak = DensitrakHandler(app, '/dev/ttyUSB0')
-    densitrak_thread = Thread(target=densitrak.read)
-    densitrak_thread.daemon = True
-    densitrak_thread.start()
+    try:
+        maxbotix = MaxbotixHandler(tank_monitor=app, port='/dev/ttyAMA0', timeout=10)
+        maxbotix.calibrate(appconfig.MAXBOTICS['calibrate_m'],
+                           appconfig.MAXBOTICS['calibrate_b'])
+        maxbotix_thread = Thread(target=maxbotix.read)
+        maxbotix_thread.daemon = True
+        maxbotix_thread.start()
+    except Exception as e:
+        log.error("Unable to setup MaxbotixHandler", exc_info=e)
+    try:
+        densitrak = DensitrakHandler(app, '/dev/ttyUSB0')
+        densitrak_thread = Thread(target=densitrak.read)
+        densitrak_thread.daemon = True
+        densitrak_thread.start()
+    except Exception as e:
+        log.error("Unable to setup DensitrakHandler", exc_info=e)
     ioloop.start()

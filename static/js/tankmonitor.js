@@ -56,7 +56,7 @@ var tankmonitor = {
     render_syslog_list: function (data) {
         var syslogs = data['syslogs'];
         var syslogList = $('.syslog-list');
-        $('.syslog-state-desc').empty();
+        $('.syslog-state-desc').text("Logging level: " + data['level'] + (data['level_reset_at'] ? ' until ' + data['level_reset_at'] : ''));
         syslogList.empty();
         $.each(syslogs, function(i, v ) {
             syslogList.append("<li><a href='/syslog/" + v + "'>" + v + "</a></li>")
@@ -120,6 +120,7 @@ var tankmonitor = {
             $.get('/valve', tankmonitor.render_valve_state);
         });
         $('#syslog-tab-link').on('shown.bs.tab', function () {
+            $('.syslog-state-desc').text("Loading system log list...");
             $.get('/syslog', tankmonitor.render_syslog_list);
         });
         $('button.valve-state-btn').on('click', function () {
@@ -131,5 +132,12 @@ var tankmonitor = {
                 error: tankmonitor.show_valve_control_error
             });
         });
+        $('button.log-level-btn').on('click', function() {
+            $.ajax({
+                type:'POST',
+                url:'/syslog',
+                success: tankmonitor.render_syslog_list
+            })
+        })
     }
 };

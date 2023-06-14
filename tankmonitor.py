@@ -13,7 +13,7 @@ import json
 import binascii
 from tanklogger import TankLogger, TankLogRecord, TankAlert
 from functools import partial
-from datetime import datetime
+from datetime import datetime, timedelta
 from time import time, sleep
 from serial import Serial
 from email.mime.text import MIMEText
@@ -26,6 +26,8 @@ from PIL import Image, ImageDraw, ImageFont
 import pcd8544.lcd as lcd
 import netifaces as ni
 import wiringpi2 as wiringpi
+
+log_level_reset_at = None
 
 logging.basicConfig(filename="syslog/tankmonitor.log",
                     format='%(asctime)s %(levelname)-8s %(message)s',
@@ -267,6 +269,12 @@ class TankMonitor(Application):
         """This method can be called from any thread."""
         IOLoop.instance().add_callback(self._set_latest_raw_val, val)
 
+    def log_level_reset(self):
+        global log_level_reset_at
+        if log_level_reset_at is not None and log_level_reset_at > datetime.now():
+            log.setLevel(logging.INFO)
+            log_level_reset_at = None
+
 SERIAL_LOCK = Lock()
 
 class MaxbotixHandler:
@@ -360,13 +368,23 @@ class DensitrakHandler:
     def shutdown(self):
         self.stop_reading = True
 
-class SyslogListHandler(RequestHandler):
+class SyslogStatusHandler(RequestHandler):
 
     def get(self, *args, **kwargs):
-        self.finish({
-            'syslogs': filter(lambda x: x.startswith('tankmonitor.log'), os.listdir('syslog'))
-        })
+        self.finish(self.get_status())
 
+    def post(self):
+        global log_level_reset_at
+        log.setLevel(logging.DEBUG)
+        log_level_reset_at = datetime.now() + timedelta(minutes=30)
+        self.finish(self.get_status())
+
+    def get_status(self):
+        return {
+            'level': log.getEffectiveLevel(),
+            'level_reset_at': log_level_reset_at,
+            'syslogs': filter(lambda x: x.startswith('tankmonitor.log'), os.listdir('syslog'))
+        }
 
 class SyslogFileHandler(StaticFileHandler):
 
@@ -435,7 +453,7 @@ if __name__ == "__main__":
         (r'/', MainPageHandler),
         (r'/logger/(.*)/(.*)', LogDownloadHandler),  # args are category, log interval
         (r'/valve', ValveHandler),
-        (r'/syslog', SyslogListHandler),
+        (r'/syslog', SyslogStatusHandler),
         (r'/syslog/(.*)', SyslogFileHandler, {'path': 'syslog/'})
     ]
     handlers += event_router.urls
@@ -461,6 +479,9 @@ if __name__ == "__main__":
     disp_print_cb.start()
     button_poll_cb = PeriodicCallback(app.poll_display_button, callback_time=100, io_loop=ioloop)
     button_poll_cb.start()
+    log_level_cb = PeriodicCallback(app.log_level_reset, callback_time=10*1000, io_loop=ioloop)
+    log_level_cb.start()
+
     http_server = HTTPServer(app)
     http_server.listen(listen_port)
     log.info("Listening on port " + str(listen_port))

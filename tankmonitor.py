@@ -1,3 +1,4 @@
+import os
 import sys
 from threading import Lock, Thread
 from tornado.web import Application, RequestHandler, HTTPError, StaticFileHandler
@@ -26,7 +27,11 @@ import pcd8544.lcd as lcd
 import netifaces as ni
 import wiringpi2 as wiringpi
 
-logging.basicConfig(filename="syslog/tankmonitor.log")
+logging.basicConfig(filename="syslog/tankmonitor.log",
+                    format='%(asctime)s %(levelname)-8s %(message)s',
+                    level=logging.INFO,
+                    datefmt='%Y-%m-%d %H:%M:%S')
+
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 debugHandler = TimedRotatingFileHandler('tankmonitor-log', backupCount=24)
@@ -356,9 +361,17 @@ class SyslogListHandler(RequestHandler):
 
     def get(self, *args, **kwargs):
         return {
-            'this': 'is',
-            'a': 'test'
+            'syslogs': filter(lambda x: x.startswith('tankmonitor.log'), os.listdir('syslog'))
         }
+
+
+class SyslogFileHandler(StaticFileHandler):
+
+    def initialize(self):
+        super().initialize('syslog/', None)
+
+    def get_content_type(self):
+        return "text/plain"
 
 
 class AlertMailer(object):
@@ -423,7 +436,7 @@ if __name__ == "__main__":
         (r'/logger/(.*)/(.*)', LogDownloadHandler),  # args are category, log interval
         (r'/valve', ValveHandler),
         (r'/syslog', SyslogListHandler),
-        (r'/syslog/(.*)', StaticFileHandler, {"path":r"syslog/"})
+        (r'/syslog/(.*)', SyslogFileHandler)
     ]
     handlers += event_router.urls
     tornado_settings = {

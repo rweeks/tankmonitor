@@ -53,6 +53,16 @@ var tankmonitor = {
         $('button.valve-state-btn').text(btn_msg).removeClass('disabled');
     },
 
+    render_syslog_list: function (data) {
+        var syslogs = data['syslogs'];
+        var syslogList = $('.syslog-list');
+        $('.syslog-state-desc').empty();
+        syslogList.empty();
+        $.each(syslogs, function(i, v ) {
+            syslogList.append("<li><a href='/syslogs/" + v + "'>" + v + "</a></li>")
+        })
+    },
+
     clear_valve_control_error: function() {
         $('p.valve-control-error').text('');
     },
@@ -108,6 +118,9 @@ var tankmonitor = {
         $('#valve-tab-link').on('shown.bs.tab', function () {
             tankmonitor.clear_valve_control_error();
             $.get('/valve', tankmonitor.render_valve_state);
+        });
+        $('#syslog-tab-link').on('shown.bs.tab', function () {
+            $.get('/syslog', tankmonitor.render_syslog_list);
         });
         $('button.valve-state-btn').on('click', function () {
             tankmonitor.clear_valve_control_error();

@@ -382,7 +382,7 @@ class SyslogStatusHandler(RequestHandler):
     def get_status(self):
         return {
             'level': log.getEffectiveLevel(),
-            'level_reset_at': log_level_reset_at,
+            'level_reset_at': None if log_level_reset_at is None else log_level_reset_at.strftime("%b %d %Y %H:%M:%S"),
             'syslogs': filter(lambda x: x.startswith('tankmonitor.log'), os.listdir('syslog'))
         }
 

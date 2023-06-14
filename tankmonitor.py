@@ -360,15 +360,12 @@ class DensitrakHandler:
 class SyslogListHandler(RequestHandler):
 
     def get(self, *args, **kwargs):
-        return {
+        self.finish({
             'syslogs': filter(lambda x: x.startswith('tankmonitor.log'), os.listdir('syslog'))
-        }
+        })
 
 
 class SyslogFileHandler(StaticFileHandler):
-
-    def initialize(self):
-        super().initialize('syslog/', None)
 
     def get_content_type(self):
         return "text/plain"
@@ -435,7 +432,7 @@ if __name__ == "__main__":
         (r'/', MainPageHandler),
         (r'/logger/(.*)/(.*)', LogDownloadHandler),  # args are category, log interval
         (r'/valve', ValveHandler),
-        (r'/syslog', SyslogListHandler),
+        (r'/syslog', SyslogListHandler, {'path': 'syslog/'}),
         (r'/syslog/(.*)', SyslogFileHandler)
     ]
     handlers += event_router.urls

@@ -54,13 +54,18 @@ var tankmonitor = {
     },
 
     render_syslog_list: function (data) {
+        var levelMap = {
+            10: 'Debug',
+            20: 'Info'
+        }
         var syslogs = data['syslogs'];
         var syslogList = $('.syslog-list');
-        $('.syslog-state-desc').text("Logging level: " + data['level'] + (data['level_reset_at'] ? ' until ' + data['level_reset_at'] : ''));
+        $('.syslog-state-desc').text("Logging level: " + levelMap[data['level']] + (data['level_reset_at'] ? ' until ' + data['level_reset_at'] : ''));
         syslogList.empty();
         $.each(syslogs, function(i, v ) {
             syslogList.append("<li><a href='/syslog/" + v + "'>" + v + "</a></li>")
-        })
+        });
+        $('.log-level-btn').removeClass('disabled');
     },
 
     clear_valve_control_error: function() {

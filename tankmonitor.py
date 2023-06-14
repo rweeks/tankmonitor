@@ -271,7 +271,7 @@ class TankMonitor(Application):
 
     def log_level_reset(self):
         global log_level_reset_at
-        if log_level_reset_at is not None and log_level_reset_at > datetime.now():
+        if log_level_reset_at is not None and log_level_reset_at < datetime.now():
             log.setLevel(logging.INFO)
             log_level_reset_at = None
 

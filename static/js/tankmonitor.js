@@ -59,7 +59,7 @@ var tankmonitor = {
         $('.syslog-state-desc').empty();
         syslogList.empty();
         $.each(syslogs, function(i, v ) {
-            syslogList.append("<li><a href='/syslogs/" + v + "'>" + v + "</a></li>")
+            syslogList.append("<li><a href='/syslog/" + v + "'>" + v + "</a></li>")
         })
     },
 

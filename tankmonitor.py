@@ -34,6 +34,8 @@ logging.basicConfig(filename="syslog/tankmonitor.log",
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
+logging.getLogger("tornado.access").setLevel(logging.DEBUG)
+
 debugHandler = TimedRotatingFileHandler('tankmonitor-log', backupCount=24)
 debugHandler.setLevel(logging.DEBUG)
 debugHandler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))

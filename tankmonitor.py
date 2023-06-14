@@ -432,8 +432,8 @@ if __name__ == "__main__":
         (r'/', MainPageHandler),
         (r'/logger/(.*)/(.*)', LogDownloadHandler),  # args are category, log interval
         (r'/valve', ValveHandler),
-        (r'/syslog', SyslogListHandler, {'path': 'syslog/'}),
-        (r'/syslog/(.*)', SyslogFileHandler)
+        (r'/syslog', SyslogListHandler),
+        (r'/syslog/(.*)', SyslogFileHandler, {'path': 'syslog/'})
     ]
     handlers += event_router.urls
     tornado_settings = {

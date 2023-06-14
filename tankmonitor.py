@@ -1,6 +1,6 @@
 import sys
 from threading import Lock, Thread
-from tornado.web import Application, RequestHandler, HTTPError
+from tornado.web import Application, RequestHandler, HTTPError, StaticFileHandler
 from tornado.httpserver import HTTPServer
 from tornado.template import Template
 from tornado.ioloop import IOLoop, PeriodicCallback
@@ -26,7 +26,7 @@ import pcd8544.lcd as lcd
 import netifaces as ni
 import wiringpi2 as wiringpi
 
-logging.basicConfig()
+logging.basicConfig(filename="syslog/tankmonitor.log")
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 debugHandler = TimedRotatingFileHandler('tankmonitor-log', backupCount=24)
@@ -352,6 +352,14 @@ class DensitrakHandler:
     def shutdown(self):
         self.stop_reading = True
 
+class SyslogListHandler(RequestHandler):
+
+    def get(self, *args, **kwargs):
+        return {
+            'this': 'is',
+            'a': 'test'
+        }
+
 
 class AlertMailer(object):
 
@@ -413,7 +421,9 @@ if __name__ == "__main__":
     handlers = [
         (r'/', MainPageHandler),
         (r'/logger/(.*)/(.*)', LogDownloadHandler),  # args are category, log interval
-        (r'/valve', ValveHandler)
+        (r'/valve', ValveHandler),
+        (r'/syslog', SyslogListHandler),
+        (r'/syslog/(.*)', StaticFileHandler, {"path":r"syslog/"})
     ]
     handlers += event_router.urls
     tornado_settings = {

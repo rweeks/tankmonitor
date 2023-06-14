@@ -34,7 +34,8 @@ logging.basicConfig(filename="syslog/tankmonitor.log",
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
-logging.getLogger("tornado.access").setLevel(logging.WARN)
+logging.getLogger("tornado.access").addHandler(logging.NullHandler())
+logging.getLogger("tornado.access").propagate = False
 
 debugHandler = TimedRotatingFileHandler('tankmonitor-log', backupCount=24)
 debugHandler.setLevel(logging.DEBUG)

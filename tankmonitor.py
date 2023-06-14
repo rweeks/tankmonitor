@@ -272,6 +272,7 @@ class TankMonitor(Application):
     def log_level_reset(self):
         global log_level_reset_at
         if log_level_reset_at is not None and log_level_reset_at < datetime.now():
+            log.info("Resetting logging level to INFO")
             log.setLevel(logging.INFO)
             log_level_reset_at = None
 
@@ -376,6 +377,7 @@ class SyslogStatusHandler(RequestHandler):
     def post(self):
         global log_level_reset_at
         log.setLevel(logging.DEBUG)
+        log.debug("Log level temporarily set to DEBUG")
         log_level_reset_at = datetime.now() + timedelta(minutes=30)
         self.finish(self.get_status())
 

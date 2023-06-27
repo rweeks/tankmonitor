@@ -1,0 +1,16 @@
+{% from datetime import datetime %}
+{% if alert.delta %}
+WARNING: {{alert_measurement_name}} rate of change is {{alert_value_format % alert.delta}} {{log_unit}}/minute.
+         This exceeds the threshold of {{alert_value_format % alert_threshold}} {{log_unit}}/minute.
+
+         Timestamp: {{datetime.fromtimestamp(alert.timestamp).strftime("%Y-%m-%d %H:%M:%S")}}
+         Value: {{alert_value_format % alert.value}} {{log_unit}}
+{% else %}
+WARNING: {{alert_measurement_name}} is {{alert_value_format % alert.value}} {{log_unit}}.
+         This is outside the threshold of {{alert_threshold}} {{log_unit}}.
+
+         Timestamp: {{datetime.fromtimestamp(alert.timestamp).strftime("%Y-%m-%d %H:%M:%S")}}
+{% end %}
+
+You are receiving this message because you have been included on the distribution list for the
+Thunderbird Creek Tank Monitor. Please contact Brian Weeks (blweeks@shaw.ca) to be removed from this list.

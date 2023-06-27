@@ -1,0 +1,27 @@
+.header h5 {
+    margin-top:5px;
+}
+.tankchart {
+    width: 100%;
+    height: 300px;
+}
+
+.tankchart svg {
+    width: 700px;
+    height: 300px;
+}
+.tankchart .nv-line {
+    fill: none !important;
+}
+
+.tankchart .nv-lineChart text {
+    font-size: 0.75em;
+}
+
+#valve div.row {
+    padding-bottom: 15px;
+}
+
+span.valve-state-desc {
+    margin-right: 20px;
+}

@@ -1,0 +1,152 @@
+{% from settings import LOG_UNITS %}
+{% from tankmonitor import CATEGORY_LABELS %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Thunderbird Creek Water Tank Monitor">
+    <meta name="author" content="rweeks@newbrightidea.com">
+
+    <title>Thunderbird Creek Water Tank Monitor</title>
+    <link href="{{static_url("css/bootstrap.min.css")}}" rel="stylesheet">
+    <link href="{{static_url("css/jumbotron-narrow.css")}}" rel="stylesheet">
+    <link href="{{static_url("css/tankmonitor.css")}}" rel="stylesheet">
+  </head>
+
+  <body>
+
+    <div class="container">
+      <div class="header">
+          <h3 class="pull-right">Currently: <span id="current-value"></span> <span id="current-log-unit"> loading...</span></h3>
+        <h3 class="text-muted">Thunderbird Creek Water Tank</h3>
+      </div>
+      <ul class="nav nav-tabs" role="tablist">
+        <li class="active"><a href="#levels" role="tab" data-toggle="tab">Readings</a></li>
+        <li><a href="#deltas" role="tab" data-toggle="tab">&Delta;<sub>t</sub></a></li>
+        <li><a id="valve-tab-link" href="#valve" role="tab" data-toggle="tab">Valve</a></li>
+        <li><a id="syslog-tab-link" href="#syslog" role="tab" data-toggle="tab">System Logs</a></li>
+      </ul>
+      <div class="tab-content">
+          <div class="tab-pane active" id="levels">
+              <label for="category-select-levels">View:</label>
+              <select class="category-select" name="category-select-levels" id="category-select-levels">
+              {% for category in ["depth", "density", "water_temp", "distance"] %}
+                  <option value="{{ category }}">{{ CATEGORY_LABELS[category] }}</option>
+              {% end %}
+              </select>
+{% for category in ["depth", "density", "water_temp", "distance"] %}
+              <div class="metric-category" data-category="{{ category }}">
+{% for label, css_id, uri, time_fmt in [('10-Second Updates', 'chart-10sec', '/logger/' + category + '/10', '%X'),
+                              ('1-Minute Updates', 'chart-1min', '/logger/' + category + '/60', '%X'),
+                              ('1-Hour Updates', 'chart-1hour', '/logger/' + category + '/3600', '%x'),] %}
+                  <div class="row">
+                    <div class="col-lg-12">
+                      <div class="header">
+                      <h5 class="pull-right text-muted"><a href="{{ uri }}?format=tsv">Download to Excel</a></h5>
+                      <h4>{{ label }}</h4>
+                      </div>
+                      <div class="tankchart" id="{{ css_id }}"
+                           data-json-src="{{ uri }}?format=nvd3" data-time-fmt="{{ time_fmt }}"
+                           data-log-unit="{{ LOG_UNITS[category] }}">
+                          <svg></svg>
+                      </div>
+                    </div>
+                  </div>
+{% end %}
+              </div>
+{% end %}
+          </div>
+          <div class="tab-pane" id="deltas">
+              <label for="category-select-deltas">View:</label>
+              <select class="category-select" name="category-select-deltas" id="category-select-deltas">
+                  {% for category in ["depth", "density", "water_temp", "distance"] %}
+                  <option value="{{ category }}">{{ CATEGORY_LABELS[category] }}</option>
+                  {% end %}
+              </select>
+{% for category in ["depth", "density", "water_temp", "distance"] %}
+              <div class="metric-category" data-category="{{ category }}">
+{% for label, css_id, uri, time_fmt in [('10-Second Updates', 'dt-10sec', '/logger/' + category + '/10?deltas=true', '%X'),
+                              ('1-Minute Updates', 'dt-1min', '/logger/' + category + '/60?deltas=true', '%X'),
+                              ('1-Hour Updates', 'dt-1hour', '/logger/' + category + '/3600?deltas=true', '%x'),] %}
+                  <div class="row">
+                    <div class="col-lg-12">
+                      <div class="header">
+                      <h5 class="pull-right text-muted"><a href="{{ uri }}&format=tsv">Download to Excel</a></h5>
+                      <h4>{{ label }}</h4>
+                      </div>
+                      <div class="tankchart" id="{{ css_id }}"
+                           data-json-src="{{ uri }}&format=nvd3" data-time-fmt="{{ time_fmt }}"
+                           data-log-unit="{{ LOG_UNITS[category] }}/minute">
+                          <svg></svg>
+                      </div>
+                    </div>
+                  </div>
+{% end %}
+              </div>
+{% end %}
+          </div>
+          <div class="tab-pane" id="valve">
+              <div class="row">
+                <div class="col-lg-12">
+                  <div class="header">
+                    <h4>Creek Input Valve</h4>
+                  </div>
+                  <div>
+                      <span class="valve-state-desc">Loading valve state...</span>
+                      <button type="button" class="valve-state-btn btn btn-sm btn-primary disabled">Toggle Valve</button>
+                  </div>
+                    <div>
+                        <p class="text-danger valve-control-error"></p>
+                    </div>
+                </div>
+              </div>
+          </div>
+          <div class="tab-pane" id="syslog">
+              <div class="row">
+                <div class="col-lg-12">
+                  <div class="header">
+                    <h4>System Logs</h4>
+                  </div>
+                  <div>
+                      <div class="container">
+                          <div class="row">
+                            <div class="col-md-6">
+                                <span class="syslog-state-desc">Loading system log list...</span>
+                            </div>
+                            <div class="col-md-4">
+                                <button type="button" class="log-level-btn btn btn-sm btn-primary disabled">Enable Debug Logging for 30 min.</button>
+                            </div>
+                          </div>
+                          <div class="row">
+                              <div class="col-md-10">
+                                  <ul class="syslog-list">
+                                  </ul>
+                              </div>
+                          </div>
+                      </div>
+
+                  </div>
+                </div>
+              </div>
+          </div>
+    </div>
+    </div>
+    <div class="footer">
+        <div class="container text-center">
+            <p>Built by <a href="http://www.newbrightidea.com">New Bright Idea</a></p>
+        </div>
+    </div>
+
+    <script type="application/javascript" src="{{ static_url('js/jquery-2.1.0.min.js') }}"></script>
+    <script type="application/javascript" src="{{ static_url('js/bootstrap.min.js') }}"></script>
+    <script type="application/javascript" src="{{ static_url('js/sockjs-0.3.min.js') }}"></script>
+    <script type="application/javascript" src="{{ static_url('js/d3.min.js') }}"></script>
+    <script type="application/javascript" src="{{ static_url('js/nv.d3.min.js') }}"></script>
+    <script type="application/javascript" src="{{ static_url('js/tankmonitor.js') }}"></script>
+    <script type="application/javascript">
+        $(tankmonitor.on_load);
+    </script>
+  </body>
+</html>

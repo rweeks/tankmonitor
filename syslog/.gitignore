@@ -1,0 +1,5 @@
+# This directory holds the tankmonitor app's system logs, so ignore everything
+*
+# except this file
+!.gitignore
+

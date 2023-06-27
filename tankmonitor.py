@@ -58,7 +58,7 @@ thread_pool = ThreadPoolExecutor(2)
 
 
 class EventConnection(SockJSConnection):
-    event_listeners = set()
+    event_listeners = []
     def on_open(self, request):
         self.event_listeners.add(self)
 
@@ -67,7 +67,7 @@ class EventConnection(SockJSConnection):
 
     @classmethod
     def notify_all(cls, msg_dict):
-        failed_listeners = set()
+        failed_listeners = []
         for event_listener in EventConnection.event_listeners:
             try:
                 event_listener.send(json.dumps(msg_dict))
@@ -304,7 +304,7 @@ class MaxbotixHandler:
                             self.tank_monitor.log_tank_depth(self.convert(val))
                         self.tank_monitor.log_distance(int(val))
             except:
-                print(("Unable to convert value '" + str(val) + "'"))
+                print("Unable to convert value '" + str(val) + "'")
                 import traceback
                 traceback.print_exc()
             finally:

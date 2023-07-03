@@ -22,7 +22,7 @@ import struct
 import smtplib
 import base64
 import settings as appconfig
-from PIL import Image, ImageDraw, ImageFont
+from pillow import Image, ImageDraw, ImageFont
 import pcd8544.lcd as lcd
 import netifaces as ni
 import wiringpi2 as wiringpi
@@ -149,8 +149,7 @@ class ValveHandler(RequestHandler):
             return
         else:
             auth_decoded = base64.decodestring(auth_header[6:])
-            hdr_auth = dict()
-            hdr_auth['username'], hdr_auth['password'] = auth_decoded.split(':', 2)
+            hdr_auth = {'username': (auth_decoded.split(':', 2))[0], 'password': (auth_decoded.split(':', 2))[1]}
             if hdr_auth != appconfig.CREDENTIALS:
                 raise HTTPError(403, reason="Valve control credentials invalid")
         ValveHandler._valve_state = not ValveHandler._valve_state

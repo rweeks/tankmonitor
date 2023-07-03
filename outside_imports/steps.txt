@@ -1,1 +1,2 @@
-1. install the WiringPi library:
+1. install the WiringPi library
+2. Install Tornado and SockJS: https://pypi.org/project/sockjs-tornado/

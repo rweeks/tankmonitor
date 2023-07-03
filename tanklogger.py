@@ -6,6 +6,17 @@ TankLogRecord = namedtuple("TankLogRecord", "timestamp value")
 TankAlert = namedtuple("TankAlert", "timestamp value delta")
 
 
+class TankLogRecord:
+    timestamp = ""
+    value = 0
+
+    def __init__(self, timestamp, value):
+        self.timestamp = timestamp
+        self.value = value
+
+class TankAlert:
+    timestamp = ""
+
 def find_delta(record, prev_rec):
     """Returns the interval in seconds and the rate of change per minute between the two
     log records. Returns None, None if the interval is zero (rate of change is infinite)"""
@@ -19,12 +30,11 @@ def find_delta(record, prev_rec):
 
 class TankLogger:
     def __init__(
-        self,
-        log_interval,
-        max_log_records=default_max_log_records,
-        alert_rate_threshold=default_alert_rate_threshold,
-        comparator=lambda d, t: d < t):
-
+            self,
+            log_interval,
+            max_log_records=default_max_log_records,
+            alert_rate_threshold=default_alert_rate_threshold,
+            comparator=lambda d, t: d < t):
 
         self.log_interval = log_interval
         self.next_capture = 0
@@ -58,7 +68,7 @@ class TankLogger:
             if not interval:
                 continue
             dlog.append(TankLogRecord(
-                timestamp=prev_rec.timestamp + 0.5*interval,
+                timestamp=prev_rec.timestamp + 0.5 * interval,
                 # Actually change in value per minute
                 value=delta
             ))

@@ -22,7 +22,8 @@ import struct
 import smtplib
 import base64
 import settings as appconfig
-from pillow import Image, ImageDraw, ImageFont
+# from pillow import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont
 import pcd8544.lcd as lcd
 import netifaces as ni
 import wiringpi2 as wiringpi
@@ -50,15 +51,16 @@ disp_contrast_off = 0x80
 disp_font = ImageFont.truetype("/usr/share/fonts/truetype/freefont/FreeMonoBold.ttf", 34)
 disp_font_sm = ImageFont.truetype("/usr/share/fonts/truetype/freefont/FreeMonoBold.ttf", 9)
 
-BTN_IN = 2   # wiringpi pin ID
+BTN_IN = 2  # wiringpi pin ID
 BTN_OUT = 3  # wiringpi pin ID
-VALVE_GPIO = 6   # wiringpi pin ID
+VALVE_GPIO = 6  # wiringpi pin ID
 
 thread_pool = ThreadPoolExecutor(2)
 
 
 class EventConnection(SockJSConnection):
-    event_listeners = []
+    event_listeners = set()
+
     def on_open(self, request):
         self.event_listeners.add(self)
 
@@ -81,12 +83,14 @@ class MainPageHandler(RequestHandler):
     def get(self, *args, **kwargs):
         self.render('main.html')
 
+
 CATEGORY_LABELS = {
     'depth': 'Volume',
     'density': 'Water Quality',
     'water_temp': 'Water Temperature',
     'distance': 'Raw Maxbotix Reading'
 }
+
 
 class LogDownloadHandler(RequestHandler):
     def get(self, category, logger_interval):
@@ -275,7 +279,9 @@ class TankMonitor(Application):
             log.setLevel(logging.INFO)
             log_level_reset_at = None
 
+
 SERIAL_LOCK = Lock()
+
 
 class MaxbotixHandler:
     def __init__(self, tank_monitor, **kwargs):
@@ -346,8 +352,8 @@ class DensitrakHandler:
             try:
                 self.tank_monitor.log_density(
                     self.send_command(b'\x01\x31\x41\x34\x36\x30\x0D\x00'))
-                self.tank_monitor.log_water_temp((5.0/9) * (
-                    self.send_command(b'\x01\x31\x41\x34\x31\x30\x0D\x00') - 32.0))
+                self.tank_monitor.log_water_temp((5.0 / 9) * (
+                        self.send_command(b'\x01\x31\x41\x34\x31\x30\x0D\x00') - 32.0))
             except:
                 log.debug("Failure reading densitrak", exc_info=sys.exc_info())
             finally:
@@ -368,6 +374,7 @@ class DensitrakHandler:
     def shutdown(self):
         self.stop_reading = True
 
+
 class SyslogStatusHandler(RequestHandler):
 
     def get(self, *args, **kwargs):
@@ -387,6 +394,7 @@ class SyslogStatusHandler(RequestHandler):
             'syslogs': [x for x in os.listdir('syslog') if x.startswith('tankmonitor.log')]
         }
 
+
 class SyslogFileHandler(StaticFileHandler):
 
     def get_content_type(self):
@@ -394,7 +402,6 @@ class SyslogFileHandler(StaticFileHandler):
 
 
 class AlertMailer(object):
-
     last_alert = None
     generic_alert_mail = Template(open('templates/generic_alert.txt', 'rb').read())
 
@@ -440,7 +447,8 @@ class AlertMailer(object):
                 (offer_time - AlertMailer.last_alert) > appconfig.EMAIL['period']:
             alert_config = AlertMailer.alert_config_by_category[category].copy()
             alert_config['alert'] = tank_alert
-            alert_config['alert_threshold'] = appconfig.ALERT_RATE_THRESHOLDS[category] if tank_alert.delta else appconfig.ALERT_THRESHOLDS[category]
+            alert_config['alert_threshold'] = appconfig.ALERT_RATE_THRESHOLDS[category] if tank_alert.delta else \
+            appconfig.ALERT_THRESHOLDS[category]
             alert_text = AlertMailer.generic_alert_mail.generate(**alert_config)
             log.warn("Sending e-mail alert due to %s %s" % (category, str(tank_alert)))
             log.warn(alert_text)
@@ -480,7 +488,7 @@ if __name__ == "__main__":
     disp_print_cb.start()
     button_poll_cb = PeriodicCallback(app.poll_display_button, callback_time=100, io_loop=ioloop)
     button_poll_cb.start()
-    log_level_cb = PeriodicCallback(app.log_level_reset, callback_time=10*1000, io_loop=ioloop)
+    log_level_cb = PeriodicCallback(app.log_level_reset, callback_time=10 * 1000, io_loop=ioloop)
     log_level_cb.start()
 
     http_server = HTTPServer(app)
@@ -503,4 +511,3 @@ if __name__ == "__main__":
     except Exception as e:
         log.error("Unable to setup DensitrakHandler", exc_info=e)
     ioloop.start()
-

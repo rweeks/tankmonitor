@@ -142,6 +142,9 @@ class ValveHandler(RequestHandler):
     _transition_time = None
 
     def get(self, *args, **kwargs):
+        """
+        the get() method returns the status of the
+        """
         self.finish(ValveHandler.get_state())
 
     def post(self, *args, **kwargs):
@@ -296,7 +299,7 @@ class MaxbotixHandler:
     def read(self):
         log.info("Starting MaxbotixHandler read")
         val = None
-        read_count = 0
+        read_count: int = 0
         while not self.stop_reading:
             try:
                 with SERIAL_LOCK:
@@ -372,6 +375,9 @@ class DensitrakHandler:
             return decoded_value
 
     def shutdown(self):
+        """
+        The shutdown() method is used to stop communicating with the DensiTrack.
+        """
         self.stop_reading = True
 
 

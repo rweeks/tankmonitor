@@ -31,3 +31,8 @@ html_static_path = ['_static']
 
 # Python code is one level up
 sys.path.insert(0, os.path.abspath('..'))
+
+# -- Options for LaTeX output -------------------------------------------------
+latex_elements = {
+  'extraclassoptions': 'openany,oneside'
+}

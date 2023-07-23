@@ -1,5 +1,5 @@
-settings module
-===============
+Tank Monitor Settings (``settings.py``)
+=======================================
 
 .. automodule:: settings
    :members:

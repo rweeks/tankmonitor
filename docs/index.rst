@@ -6,9 +6,8 @@ TWUC Tank Monitor User Guide
 
 .. toctree::
    :maxdepth: 4
-   :caption: Contents:
+   :caption: Table of Contents
 
-   Tank Monitor App <tankmonitor>
-   TankMonitor Settings File <settings>
-   Tank Logger Utility <tanklogger>
-
+   tankmonitor
+   tanklogger
+   settings

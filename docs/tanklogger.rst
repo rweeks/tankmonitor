@@ -1,5 +1,5 @@
-tanklogger module
-=================
+Data Logger Module (``tanklogger.py``)
+======================================
 
 .. automodule:: tanklogger
    :members:

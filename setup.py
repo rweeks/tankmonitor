@@ -13,7 +13,8 @@ setup(
     install_requires=[
         'sockjs-tornado',
         'pillow',
-        'netifaces'
+        'netifaces',
+        "pyserial"
     ]
 )
 

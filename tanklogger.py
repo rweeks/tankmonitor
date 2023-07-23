@@ -24,7 +24,7 @@ class TankAlert:
     """
     timestamp: float
     value: float
-    delta: float
+    delta: Union[None, float]
 
 
 def find_delta(record: TankLogRecord, prev_rec: TankLogRecord) -> Union[(None, None), (float, float)]:
@@ -47,15 +47,15 @@ def find_delta(record: TankLogRecord, prev_rec: TankLogRecord) -> Union[(None, N
     interval = record.timestamp - prev_rec.timestamp
     if interval == 0:
         return None, None
-    return (interval, 60.0 * (record.value - prev_rec.value) / interval)
+    return interval, 60.0 * (record.value - prev_rec.value) / interval
 
 
 class TankLogger:
     def __init__(
             self,
-            log_interval,
+            log_interval: int,  # seconds
             max_log_records: int = default_max_log_records,
-            alert_rate_threshold: float = default_alert_rate_threshold,
+            alert_rate_threshold: Union[None, float] = default_alert_rate_threshold,
             comparator=lambda d, t: d < t):
 
         self.log_interval: float = log_interval

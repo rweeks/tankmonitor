@@ -27,7 +27,7 @@ class TankAlert:
     delta: Union[None, float]
 
 
-def find_delta(record: TankLogRecord, prev_rec: TankLogRecord) -> Union[(None, None), (float, float)]:
+def find_delta(record: TankLogRecord, prev_rec: TankLogRecord) -> Union[tuple[None, None], tuple[float, float]]:
     """
     The find_delta() function returns a tuple with two pieces of data.
 

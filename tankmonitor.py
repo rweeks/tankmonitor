@@ -1,7 +1,7 @@
 import os
 import sys
 from threading import Lock, Thread
-from typing import Dict, Union, Any, List
+from typing import Union, List
 
 from tornado.web import Application, RequestHandler, HTTPError, StaticFileHandler
 from tornado.httpserver import HTTPServer
@@ -26,9 +26,11 @@ import base64
 import settings as appconfig
 # from pillow import Image, ImageDraw, ImageFont
 from PIL import Image, ImageDraw, ImageFont
-import pcd8544.lcd as lcd
-import netifaces as ni
-import wiringpi2 as wiringpi
+from oschecker import is_macos
+if not is_macos():
+    import pcd8544.lcd as lcd
+    import netifaces as ni
+    import wiringpi2 as wiringpi
 
 log_level_reset_at = None
 
@@ -50,8 +52,9 @@ log.addHandler(debugHandler)
 listen_port = 4242
 disp_contrast_on = 0xB0
 disp_contrast_off = 0x80
-disp_font = ImageFont.truetype("/usr/share/fonts/truetype/freefont/FreeMonoBold.ttf", 34)
-disp_font_sm = ImageFont.truetype("/usr/share/fonts/truetype/freefont/FreeMonoBold.ttf", 9)
+if not is_macos():
+    disp_font = ImageFont.truetype("/usr/share/fonts/truetype/freefont/FreeMonoBold.ttf", 34)
+    disp_font_sm = ImageFont.truetype("/usr/share/fonts/truetype/freefont/FreeMonoBold.ttf", 9)
 
 BTN_IN = 2  # wiringpi pin ID
 BTN_OUT = 3  # wiringpi pin ID
@@ -165,11 +168,13 @@ class LogDownloadHandler(RequestHandler):
 class ValveHandler(RequestHandler):
     """Callers can use the GET method to get the status of the creek intake valve and use the
        POST method to toggle the status of the creek intake valve.
-       In both cases the response is a json dict like so:
-       {
-          "valve": 0,
-          "transition_time": "2015-03-18T12:00:12"
-       }
+       In both cases the response is a json dict like so::
+
+           {
+              "valve": 0,
+              "transition_time": "2015-03-18T12:00:12"
+           }
+
        Indicating the current status of the valve: 0 means that the IO pin is low (the valve is
        normally-open, so the valve will be open). 1 means that the IO pin is high and the valve is
        closed. transition_time is the time of the most recent state change, in the server's time
@@ -223,29 +228,25 @@ class ValveHandler(RequestHandler):
                 Returns an integer describing whether the valve is opened or closed.
 
                 Possible return values:
-                 - 0: The valve is open
-                 - 1: The valve is closed
-                 Refer to the docstring at the ValveHandler() class declaration for
-                 and in-depth look at why 0 and 1 are the possible states for the valve.
-
+                    - 0: The valve is open
+                    - 1: The valve is closed
+                Refer to the docstring at the ValveHandler() class declaration for
+                an in-depth look at why 0 and 1 are the possible states for the valve.
 
             - "transition_time"
                 Returns a datetime string detailing the time when the valve opened or closed.
 
-                Example:
+                Example::
+
                     {
                     ...
                     "transition_time" : "2015-03-18T12:00:12"
                     }
 
-                What does the 'T' represent in the datetime string?
-                    The 'T' is the separator between the date and
-                    the time in the string. It can be changed to
-                    any character by modifying the 'sep' parameter in
-                    the isoformat() method (found in the post() method
-                    of the current class)
-
-
+                What does the 'T' represent in the datetime string? The 'T' is the separator
+                between the date and the time in the string. It can be changed to any character by
+                modifying the 'sep' parameter in the isoformat() method (found in the post() method
+                of the current class)
         """
         return {
             'valve': ValveHandler._valve_state,
@@ -507,8 +508,8 @@ class MaxbotixHandler:
 
         Since the raspberry pi has two serial ports, we use Serial Lock to
         set up two lines of communication:
-            1) between the Raspberry Pi and the Maxbotix machine
-            2) between the Raspberry Pi and the Densitrak
+        #. between the Raspberry Pi and the Maxbotix machine
+        #. between the Raspberry Pi and the Densitrak
         While also stopping concurrent use of the serial ports, since that can
         lead to data corruption.
 
@@ -543,10 +544,10 @@ class DensitrakHandler:
     def send_command(self, command):
         """
         The send_command() method is used to send commands to the Densitrak. This
-         method takes binary values as arguments. For example, the read() method (defined above),
-         is sent the binary value b'\x01\x31\x41\x34\x36\x30\x0D\x00' which is used to communicate
-         with the Densitrak. These instructions must be in binary if you want to interact with the
-         Densitrak because there is no higher-level abstraction on which to send commands.
+        method takes binary values as arguments. For example, the read() method (defined above),
+        is sent the binary value ``\\x01\\x31\\x41\\x34\\x36\\x30\\x0D\\x00`` which is used to communicate
+        with the Densitrak. These instructions must be in binary if you want to interact with the
+        Densitrak because there is no higher-level abstraction on which to send commands.
         """
         with SERIAL_LOCK:
             self.serial_port.flush()
@@ -583,9 +584,9 @@ class SyslogStatusHandler(RequestHandler):
         The get_status() method returns a dictionary containing important
         information, which can be used for debugging. When called, this function will
         return a dictionary containing:
-            'level' : the current level of the logger
-            'level_reset_at' : The timestamp of the latest reset time, or None if the logger has not been reset.
-            'syslogs' : An array of system logs
+        - 'level' : the current level of the logger
+        - 'level_reset_at' : The timestamp of the latest reset time, or None if the logger has not been reset.
+        - 'syslogs' : An array of system logs
         """
         return {
             'level': log.getEffectiveLevel(),

@@ -1,15 +1,20 @@
-.. tankmonitor documentation master file, created by
-   sphinx-quickstart on Sat Jul 22 18:06:13 2023.
+.. Tankmonitor documentation master file, created by
+   sphinx-quickstart on Sat Jul 22 20:29:42 2023.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to tankmonitor's documentation!
-=======================================
+TWUC Tank Monitor User Guide
+==========================================
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 4
    :caption: Contents:
 
+   oschecker
+   settings
+   setup
+   tanklogger
+   tankmonitor
 
 
 Indices and tables

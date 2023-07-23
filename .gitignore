@@ -3,4 +3,5 @@
 *.pyc
 tankmonitor-log*
 docs/build
+docs/_build
 

@@ -10,9 +10,7 @@ TWUC Tank Monitor User Guide
    :maxdepth: 4
    :caption: Contents:
 
-   oschecker
    settings
-   setup
    tanklogger
    tankmonitor
 

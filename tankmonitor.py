@@ -27,7 +27,7 @@ import settings as appconfig
 from PIL import Image, ImageDraw, ImageFont
 from oschecker import is_macos
 if not is_macos():
-    from pcd8544 import lcd
+    from pcd8544.lcd import LCD
     import netifaces as ni
     import wiringpi
     wiringpi.wiringPiSetup()
@@ -268,7 +268,7 @@ class ValveHandler(RequestHandler):
 
 
 class TankMonitor(Application):
-    def __init__(self, handlers=None, **settings):
+    def __init__(self, lcd, handlers=None, **settings):
         """
         The __init__(self) function initializes a new instance of the
         TankMonitor() class. Taking a closer look, it creates several
@@ -322,16 +322,16 @@ class TankMonitor(Application):
         }
         self.latest_raw_val: Union[None, float] = None
         self.display_expiry = 0
+        self.lcd = lcd
 
-        """
-        The log_* methods (i.e., log_tank_depth(), log_density(), log_water_temp() ...
-        are a collection of methods that can be used to log different qualities of the
-        water found in the tank.
-        
-        These methods should be used for logging in place of print() statements so that
-        it is possible to collect a record of the information in a file.
-        """
-
+    """
+    The log_* methods (i.e., log_tank_depth(), log_density(), log_water_temp() ...
+    are a collection of methods that can be used to log different qualities of the
+    water found in the tank.
+    
+    These methods should be used for logging in place of print() statements so that
+    it is possible to collect a record of the information in a file.
+    """
     def log_tank_depth(self, tank_depth: Union[int, float]):
         """The log* methods can be called from outside the app's IOLoop. They're the
         only methods that can be called like that"""
@@ -402,14 +402,14 @@ class TankMonitor(Application):
                 draw.text((0, 5), self.latest_raw_val, font=disp_font, fill=1)
             draw.text((0, 0), ip_addr, font=disp_font_sm, fill=1)
             draw.text((5, 36), "mm to surface", font=disp_font_sm, fill=1)
-            lcd.show_image(im)
+            self.lcd.show_image(im)
             # clean up
             del draw
             del im
-            lcd.set_contrast(disp_contrast_on)
+            self.lcd.set_contrast(disp_contrast_on)
         else:
-            lcd.set_contrast(disp_contrast_off)
-            lcd.cls()
+            self.lcd.set_contrast(disp_contrast_off)
+            self.lcd.clear()
 
     def poll_display_button(self):
         """
@@ -839,12 +839,13 @@ if __name__ == "__main__":
     """
     Initialize the LCD
     """
+    lcd = None
     try:
-        lcd.init()
-        lcd.gotoxy(0, 0)
+        lcd = LCD()
+        lcd.go_to_xy(0, 0)
         lcd.set_contrast(disp_contrast_on)
-        lcd.cls()
-        lcd.text("LCD Init")
+        lcd.clear()
+        lcd.put_string("LCD Init")
     except Exception as e:
         log.error(f"Failed to initialize the LCD screen \n {e}", exc_info=e)
 
@@ -860,7 +861,7 @@ if __name__ == "__main__":
     """
     Initialize a new instance of the TankMonitor() class to monitor the tank.
     """
-    app = TankMonitor(handlers, **tornado_settings)
+    app = TankMonitor(lcd, handlers, **tornado_settings)
 
     """
     Initialize multiple methods to keep the project

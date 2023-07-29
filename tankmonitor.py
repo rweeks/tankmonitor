@@ -841,7 +841,7 @@ if __name__ == "__main__":
     """
     lcd = None
     try:
-        lcd = LCD()
+        lcd = LCD(PIN={"DC": 4, "RST": 5})
         lcd.go_to_xy(0, 0)
         lcd.set_contrast(disp_contrast_on)
         lcd.clear()

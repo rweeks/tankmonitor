@@ -495,7 +495,7 @@ class MaxbotixHandler:
 
         kwargs will be passed through to the serial port constructor
         """
-        self.serial_port: Optional[str] = None
+        self.serial_port: Optional[serial.Serial] = None
         self.set_serial_port(**kwargs)
         self.stop_reading: bool = False
         self.tank_monitor: TankMonitor() = tank_monitor

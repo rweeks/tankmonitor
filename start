@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
 
+systemctl stop serial-getty@USB0.service
 pushd /home/pi/tankmonitor
 python tankmonitor.py

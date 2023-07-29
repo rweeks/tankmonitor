@@ -24,13 +24,12 @@ import struct
 import smtplib
 import base64
 import settings as appconfig
-# from pillow import Image, ImageDraw, ImageFont
 from PIL import Image, ImageDraw, ImageFont
 from oschecker import is_macos
 if not is_macos():
-    import pcd8544.lcd as lcd
+    from pcd8544 import lcd
     import netifaces as ni
-    import wiringpi2 as wiringpi
+    import wiringpi
 
 log_level_reset_at = None
 

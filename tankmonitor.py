@@ -524,16 +524,13 @@ class MaxbotixHandler:
         read_count: int = 0
         while not self.stop_reading:
             try:
-                log.info("Acquiring serial lock for maxbotix")
                 with SERIAL_LOCK:
-                    log.info("Acquired serial lock for maxbotix")
                     val = self.serial_port.read()
-                    log.info(f"Read byte {val} after acquiring maxbotix lock")
-                    if val == 'R':
+                    if val == b'R':
                         val = self.serial_port.read(4)
-                        log.info(f"Read val {val} ({len(val)} bytes) from maxbotix")
                         read_count += 1
                         if read_count % 5 == 0:  # cheesy kludge to avoid tons of logging
+                            val = float(val)
                             self.tank_monitor.set_latest_raw_val(val)
                             self.tank_monitor.log_tank_depth(self.convert(val))
                         self.tank_monitor.log_distance(int(val))

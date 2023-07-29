@@ -94,7 +94,7 @@ class TankLogger:
     def deltas(self) -> List[TankLogRecord]:
         """
         The deltas() function returns a list containing multiple instances
-         of the TankLogRecords() dataclass.
+        of the TankLogRecords() dataclass.
 
         """
         dlog: List = []

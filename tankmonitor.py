@@ -1,7 +1,7 @@
 import os
 import sys
 from threading import Lock, Thread
-from typing import Union, List
+from typing import Union, List, Optional
 
 from tornado.web import Application, RequestHandler, HTTPError, StaticFileHandler
 from tornado.httpserver import HTTPServer
@@ -65,13 +65,16 @@ thread_pool = ThreadPoolExecutor(2)
 
 
 class EventConnection(SockJSConnection):
+
+    """
+    The EventConnection() class handles communication between event listeners.
+    """
     event_listeners = set()
 
     def on_open(self, request):
         """
         The on_open() methods adds a new instance of the
-        EventConnection() class to the list (technically a set)
-        of event listeners.
+        EventConnection() class to the list of event listeners.
         """
         self.event_listeners.add(self)
 
@@ -92,6 +95,10 @@ class EventConnection(SockJSConnection):
         If sending the JSON fails, the listener is reported to the log file and
         removed from the list of listeners, so that it won't send another JSON string
         to the failed listener.
+
+        The method iterates through all the `event_listeners` tries to send them a JSON file
+        If the process fails to send the JSON file, it removes the specific event_listener
+        from the list, so that it does not attempt to re-send the information again.
         """
         failed_listeners = []
         for event_listener in EventConnection.event_listeners:
@@ -114,6 +121,11 @@ class MainPageHandler(RequestHandler):
         """
         self.render('main.html')
 
+
+
+#: The ``CATEGORY_LABELS`` setting is a dictionary which maps an internal definition of a measurement
+#: to a human-readable format.
+#: Internal pieces of information are clarified for external use
 
 CATEGORY_LABELS = {
     'depth': 'Volume',
@@ -153,10 +165,10 @@ class LogDownloadHandler(RequestHandler):
             self.write_tsv(records)
             self.finish()
 
-    def write_tsv(self, records):
+    def write_tsv(self, records: List[TankLogRecord]):
         """
-        The write_tsv() method is to create a Tab-Separated-Value file containing
-        a history of every tank record currently stored in the system.
+        The write_tsv() method creates a Tab-Separated-Value file containing
+        a history of every `TankLogRecord()` currently used in the program.
         """
         for record in records:
             timestamp = datetime.fromtimestamp(record.timestamp).strftime('%Y-%m-%d %H:%M:%S')
@@ -278,7 +290,7 @@ class TankMonitor(Application):
 
             TankLogger(3600, alert_rate_threshold=appconfig.ALERT_RATE_THRESHOLDS['depth'])
 
-            will log information relating to the depth of the water ever 3600 seconds, or 1 hour.
+            will log information relating to the depth of the water every 3600 seconds, or 1 hour.
         """
 
         super(TankMonitor, self).__init__(handlers, **settings)
@@ -320,24 +332,24 @@ class TankMonitor(Application):
         it is possible to collect a record of the information in a file.
         """
 
-    def log_tank_depth(self, tank_depth):
+    def log_tank_depth(self, tank_depth: Union[int, float]):
         """The log* methods can be called from outside the app's IOLoop. They're the
         only methods that can be called like that"""
         log.debug("Logging depth: " + str(tank_depth))
         IOLoop.current().add_callback(partial(self._offer_log_record, 'depth', time(),
                                               tank_depth))
 
-    def log_density(self, density):
+    def log_density(self, density: float):
         log.debug("Logging density: " + str(density))
         IOLoop.current().add_callback(partial(self._offer_log_record, 'density', time(),
                                               density))
 
-    def log_water_temp(self, water_temp):
+    def log_water_temp(self, water_temp: float):
         log.debug("Logging water temp: " + str(water_temp))
         IOLoop.current().add_callback(partial(self._offer_log_record, 'water_temp', time(),
                                               water_temp))
 
-    def log_distance(self, distance):
+    def log_distance(self, distance: Union[int, float]):
         # log.debug("Logging distance:" + str(distance))
         IOLoop.current().add_callback(partial(self._offer_log_record, 'distance', time(),
                                               distance))
@@ -412,12 +424,21 @@ class TankMonitor(Application):
     def _set_latest_raw_val(self, val: float):
         """
         The _set_latest_raw_val() method records the latest value
-        returned from the Maxbotix machine
+        returned from the Maxbotix machine.
+
+        The value that the Maxbotix machine returns is the distance from
+        the ultrasonic range sensor to the surface of the water.
+
         """
         self.latest_raw_val = val
 
     def set_latest_raw_val(self, val: float):
-        """This method can be called from any thread."""
+        """
+        This method will set the value that is returned from the Maxbotix machine
+        to the `self.latest_raw_val` property of the class.
+
+        This method can be called from any thread.
+        """
         IOLoop.instance().add_callback(self._set_latest_raw_val, val)
 
     def log_level_reset(self):
@@ -439,17 +460,64 @@ class MaxbotixHandler:
 
     def __init__(self, tank_monitor, **kwargs):
 
-        """kwargs will be passed through to the serial port constructor"""
-        self.serial_port = None
+        """
+        The MaxbotixHandler() class handles communication between the
+        Raspberry Pi and the Maxbotix ultrasonic range sensor via serial port.
+
+        The constructor takes several parameters:
+            - serial_port: str
+                - It's a link-extension of the HTTP address.
+                - Tells the class which serial port should be used for
+                  sending or receiving signals fom the Maxbotix device
+                - Can be `None` if you want to assign one in the future
+                - If kwargs (keyword arguments) are used to construct and instance,
+                  they will be passed to the set_serial_port_method(), a constructor
+                  that is defined inside this class
+
+            - stop_reading: bool
+                - The purpose of this boolean is to determine if the program currently
+                  has permission to read from the Maxbotix device.
+
+                - The program needs to check for permission to avoid problematic cases, these include:
+                    - Data Races: When two or more processes access the same variable at the same time,
+                      undergoing a change of state unknown by one process, but being recognized as the other
+
+            - tank_monitor: TankMonitor()
+                - The TankMonitor() class takes in a TankMonitor() as a constructor so that
+                  this class can access data relating to the TankMonitor() class
+
+            - calibrate_m and calibrate_b: floats
+                - These fields are closely related.
+
+                - The distance picked up by the ultrasonic range sensor can be used to calculate
+                  the numbers of litres currently in the tank using a linear function. The
+                  `calibrate_m` and `calibrate_b` can be calibrated in the settings.py file
+
+        kwargs will be passed through to the serial port constructor
+        """
+        self.serial_port: Optional[str] = None
         self.set_serial_port(**kwargs)
-        self.stop_reading = False
-        self.tank_monitor = tank_monitor
-        self.calibrate_m = 1
-        self.calibrate_b = 0
+        self.stop_reading: bool = False
+        self.tank_monitor: TankMonitor() = tank_monitor
+        self.calibrate_m: float = 1.0
+        self.calibrate_b: float = 0.0
 
     def read(self):
         """
-        The read() method reads data from the Maxbotix machine
+        The read() method reads data from the Maxbotix device.
+
+        If the MaxbotixHandler() has permission to read, the
+        program will enter a `while` loop that continues reading
+        the serial port every 0.1 seconds for any signals coming from the Maxbotix device.
+
+
+        The logger will log:
+            - The raw value (distance given by the Maxbotix ultrasonic range-sensor)
+            - The tank depth
+
+        If reading the serial port data or analysing the raw value, the try-catch
+        block will fail and the stacktrace will be printed
+
         """
         log.info("Starting MaxbotixHandler read")
         val = None
@@ -472,7 +540,7 @@ class MaxbotixHandler:
             finally:
                 sleep(0.1)
 
-    def calibrate(self, m, b):
+    def calibrate(self, m: float, b: float):
         """ Defines the parameters for a linear equation y=mx+b, which is used
         to convert the output of the sensor to whatever units are specified in the settings file.
         """
@@ -480,16 +548,31 @@ class MaxbotixHandler:
         self.calibrate_m = float(m)
         self.calibrate_b = float(b)
 
-    def convert(self, val):
+    def convert(self, val: float) -> float:
         """
-        The Maxbotics machine, the ultra-sonic range sensor, returns a value,
-        describing how far down the laser went before it bounced off the water
-        and returned to the Maxbotics machine.
+        The Maxbotix device (the ultrasonic range sensor) returns a value,
+        describing how far down the sound went before it bounced off the water
+        and returned to the Maxbotix machine.
 
-        The distance of which the laser travelled is used in the equation y = mx + b
+        The distance of which the sound travelled is used in the equation y = mx + b
         to calculate the number of litres in the tank.
 
-        The result is recorded in the log file and returned for future use in the program.
+        The number of litres inside the tank can be expressed as the equation:
+
+        ```
+        number of litres inside the tank =
+
+        m * (distance from the Maxbotix device to the surface of the water) + b
+        ```
+
+        What are the m and b variables?
+            They are used as the slope and offset to accurately convert the range-sensor
+            data into volume of the tank.
+
+        The result is recorded in the log file and returned to be used in other parts of the program.
+
+
+        This function returns the number of litres inside the tank as a float
         """
         converted = self.calibrate_m * float(val) + self.calibrate_b
         if log.isEnabledFor(logging.DEBUG):
@@ -499,6 +582,31 @@ class MaxbotixHandler:
     def shutdown(self):
         """
         The shutdown() function is used to stop communicating with the Maxbotix machine.
+
+        When attempting to read data from the ultrasonic range sensor, the program enters
+        a while loop that checks the condition of `self.stop_reading` to see if it can
+        execute the code.
+
+        ```python
+        while not self.stop_reading:
+            # read from the Maxbotix device
+        ```
+
+        When `self.stop_reading` is set to `True`, the `while` loop simplifies to:
+
+        ```python
+        while not True:
+            # read from the Maxbotix device
+        ```
+
+        Which simplifies even further to:
+
+        ```python
+        while False:
+            # read from the Maxbotix device
+        ```
+
+        The condition following the `while` keyword is not true, so the nested code does not execute.
         """
         self.stop_reading = True
 
@@ -514,7 +622,7 @@ class MaxbotixHandler:
         While also stopping concurrent use of the serial ports, since that can
         lead to data corruption.
 
-        YOU CANNOT USE BOTH SERIAL PORTS AT THE SAME TIME
+        YOU CANNOT USE BOTH SERIAL PORTS AT THE SAME TIME - This is to prevent data-corruption
         """
         with SERIAL_LOCK:
             self.serial_port: serial.Serial = serial.Serial(**kwargs)
@@ -529,6 +637,30 @@ class DensitrakHandler:
         self.tank_monitor: TankMonitor = tank_monitor
 
     def read(self):
+        """
+        The read() method is used to log information from the
+        Densitrak through one of the serial ports on the Raspberry Pi.
+
+        For this method to work properly, the Densitrak must be powered-on
+        and connected to the Raspberry Pi through a serial port.
+
+        If the wired connection has been set up properly and there seems to be no problems,
+        the method checks whether it has permission to read from the serial port
+
+        If read-permission has been granted, the program will attempt to log two pieces of data:
+            - The water density
+            - The water temperature is degrees celsius, which has been converted from Fahrenheit
+
+        If the method fails to log information from the  Densitrak, the failure will be reported
+         with the stacktrace
+
+         After attempting to read the information from the Densitrak, the method
+         sleeps (stops temporarily) for two seconds before resuming the while loop. The while loop
+         can stop attempting to read the data from the Densitrak volume every two seconds by setting
+         the `stop_reading` property to `True`.
+
+        When the method is called, if it does not have reading permission, it exits the function.
+        """
         self.serial_port.open()
         log.info("Starting Densitrak read")
         while not self.stop_reading:
@@ -542,11 +674,11 @@ class DensitrakHandler:
             finally:
                 sleep(2)
 
-    def send_command(self, command):
+    def send_command(self, command: str):
         """
-        The send_command() method is used to send commands to the Densitrak. This
-        method takes binary values as arguments. For example, the read() method (defined above),
-        is sent the binary value ``\\x01\\x31\\x41\\x34\\x36\\x30\\x0D\\x00`` which is used to communicate
+        The `send_command()` method is used to send commands to the Densitrak. This
+        method takes binary values as arguments. For example, the `read()` method (located in the same file),
+        is sent the binary value `\\x01\\x31\\x41\\x34\\x36\\x30\\x0D\\x00` which is used to communicate
         with the Densitrak. These instructions must be in binary if you want to interact with the
         Densitrak because there is no higher-level abstraction on which to send commands.
         """
@@ -564,6 +696,11 @@ class DensitrakHandler:
     def shutdown(self):
         """
         The shutdown() method is used to stop communicating with the DensiTrack.
+
+        It sets the `stop_reading` property of the `DensitrakHandler()` to `True`. Other
+        functions and methods use this property to determine if they should read the from
+        the Densitrak.
+
         """
         self.stop_reading = True
 
@@ -582,12 +719,11 @@ class SyslogStatusHandler(RequestHandler):
 
     def get_status(self) -> dict[str, any]:
         """
-        The get_status() method returns a dictionary containing important
-        information, which can be used for debugging. When called, this function will
-        return a dictionary containing:
+        When called, the `get_status()` method will return a dictionary containing:
         - 'level' : the current level of the logger
         - 'level_reset_at' : The timestamp of the latest reset time, or None if the logger has not been reset.
         - 'syslogs' : An array of system logs
+
         """
         return {
             'level': log.getEffectiveLevel(),
@@ -600,7 +736,7 @@ class SyslogFileHandler(StaticFileHandler):
 
     def get_content_type(self):
         """
-        Returns the type of content that make up syslogs
+        the get_content_type() method returns the type of content that make up syslogs.
         """
         return "text/plain"
 
@@ -688,7 +824,7 @@ class AlertMailer(object):
 
 if __name__ == "__main__":
     event_router = SockJSRouter(EventConnection, '/event')
-    handlers = [
+    handlers: List[tuple[str, type]] = [ # In this case, `type` refers to a custom type.
         (r'/', MainPageHandler),
         (r'/logger/(.*)/(.*)', LogDownloadHandler),  # args are category, log interval
         (r'/valve', ValveHandler),
@@ -704,11 +840,14 @@ if __name__ == "__main__":
     """
     Initialize the LCD
     """
-    lcd.init()
-    lcd.gotoxy(0, 0)
-    lcd.set_contrast(disp_contrast_on)
-    lcd.cls()
-    lcd.text("LCD Init")
+    try:
+        lcd.init()
+        lcd.gotoxy(0, 0)
+        lcd.set_contrast(disp_contrast_on)
+        lcd.cls()
+        lcd.text("LCD Init")
+    except Exception as e:
+        log.error(f"Failed to initialize the LCD screen \n {e}", exc_info=e)
 
     """
     Initialize the Buttons and GPIO pins of the Raspberry Pi

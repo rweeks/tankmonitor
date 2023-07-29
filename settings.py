@@ -5,7 +5,7 @@ tankmonitor app.
 
 
 #: What is the Maxbotix?
-#:     Generally, the Maxbotix machine is an ultra-sonic range sensor. The laser shoots out
+#:     Generally, the Maxbotix machine is an ultrasonic range sensor. The sound shoots out
 #:     from the top of the tank and when/if it hits the water inside the tank, it bounces back
 #:     into the receiver and calculates the distance in centimetres that the laser traveled.
 #:

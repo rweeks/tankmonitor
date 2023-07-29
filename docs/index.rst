@@ -4,10 +4,12 @@
 TWUC Tank Monitor User Guide
 ==========================================
 
+
 .. toctree::
    :maxdepth: 4
    :caption: Table of Contents
 
+   prerequisites
    tankmonitor
    tanklogger
    settings

@@ -868,11 +868,11 @@ if __name__ == "__main__":
     (i.e., software, display, log level) up to date.
     """
     ioloop = IOLoop.instance()
-    disp_print_cb = PeriodicCallback(app.update_display, callback_time=500, io_loop=ioloop)
+    disp_print_cb = PeriodicCallback(app.update_display, callback_time=500)
     disp_print_cb.start()
-    button_poll_cb = PeriodicCallback(app.poll_display_button, callback_time=100, io_loop=ioloop)
+    button_poll_cb = PeriodicCallback(app.poll_display_button, callback_time=100)
     button_poll_cb.start()
-    log_level_cb = PeriodicCallback(app.log_level_reset, callback_time=10 * 1000, io_loop=ioloop)
+    log_level_cb = PeriodicCallback(app.log_level_reset, callback_time=10 * 1000)
     log_level_cb.start()
 
     """

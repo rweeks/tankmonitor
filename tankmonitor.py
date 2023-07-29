@@ -661,7 +661,6 @@ class DensitrakHandler:
 
         When the method is called, if it does not have reading permission, it exits the function.
         """
-        self.serial_port.open()
         log.info("Starting Densitrak read")
         while not self.stop_reading:
             try:

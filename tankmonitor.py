@@ -30,6 +30,7 @@ if not is_macos():
     from pcd8544 import lcd
     import netifaces as ni
     import wiringpi
+    wiringpi.wiringPiSetup()
 
 log_level_reset_at = None
 

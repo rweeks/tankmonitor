@@ -707,18 +707,18 @@ class DensitrakHandler:
 class SyslogStatusHandler(RequestHandler):
 
     def get(self, *args, **kwargs):
-        self.finish(self.get_status())
+        self.finish(self.get_syslog_status())
 
     def post(self):
         global log_level_reset_at
         log.setLevel(logging.DEBUG)
         log.debug("Log level temporarily set to DEBUG")
         log_level_reset_at = datetime.now() + timedelta(minutes=30)
-        self.finish(self.get_status())
+        self.finish(self.get_syslog_status())
 
-    def get_status(self) -> dict[str, any]:
+    def get_syslog_status(self) -> dict[str, any]:
         """
-        When called, the `get_status()` method will return a dictionary containing:
+        When called, the `get_syslog_status()` method will return a dictionary containing:
         - 'level' : the current level of the logger
         - 'level_reset_at' : The timestamp of the latest reset time, or None if the logger has not been reset.
         - 'syslogs' : An array of system logs

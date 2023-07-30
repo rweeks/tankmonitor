@@ -27,8 +27,3 @@ case "$1" in
 esac
 
 exit 0
-
-
-# sudo apt-get install sshd
-# ifconfig (see current IPv4 address)
-# mac: ssh pi@IP

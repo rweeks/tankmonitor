@@ -335,24 +335,24 @@ class TankMonitor(Application):
     def log_tank_depth(self, tank_depth: Union[int, float]):
         """The log* methods can be called from outside the app's IOLoop. They're the
         only methods that can be called like that"""
-        log.debug("Logging depth: " + str(tank_depth))
-        IOLoop.current().spawn_callback(partial(self._offer_log_record, 'depth', time(),
-                                              tank_depth))
+        log.info("Logging depth: " + str(tank_depth))
+        IOLoop.current().spawn_callback(self._offer_log_record, 'depth', time(),
+                                              tank_depth)
 
     def log_density(self, density: float):
         log.debug("Logging density: " + str(density))
-        IOLoop.current().spawn_callback(partial(self._offer_log_record, 'density', time(),
-                                              density))
+        IOLoop.current().spawn_callback(self._offer_log_record, 'density', time(),
+                                              density)
 
     def log_water_temp(self, water_temp: float):
         log.debug("Logging water temp: " + str(water_temp))
-        IOLoop.current().spawn_callback(partial(self._offer_log_record, 'water_temp', time(),
-                                              water_temp))
+        IOLoop.current().spawn_callback(self._offer_log_record, 'water_temp', time(),
+                                              water_temp)
 
     def log_distance(self, distance: Union[int, float]):
         # log.debug("Logging distance:" + str(distance))
-        IOLoop.current().spawn_callback(partial(self._offer_log_record, 'distance', time(),
-                                              distance))
+        IOLoop.current().spawn_callback(self._offer_log_record, 'distance', time(),
+                                              distance)
 
     async def _offer_log_record(self, category, timestamp, value):
         """
@@ -366,6 +366,7 @@ class TankMonitor(Application):
         Secondly, it notifies all the listeners currently using an instance
         of the EventConnection() class.
         """
+        log.info(f"In _offer_log_record, category == {category}, timestamp == {timestamp}, value == {value}")
         log_record = TankLogRecord(timestamp=timestamp, value=value)
         if category == 'depth' and value < appconfig.ALERT_THRESHOLDS['depth']:
             await AlertMailer.offer('depth', TankAlert(timestamp=timestamp, value=value, delta=None))

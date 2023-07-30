@@ -1,6 +1,8 @@
 import os
 import sys
 import asyncio
+import dataclasses
+
 from threading import Lock, Thread
 from typing import Union, List, Optional
 
@@ -154,7 +156,7 @@ class LogDownloadHandler(RequestHandler):
         log.debug("Returning %d records for %s" % (len(records), category))
         if fmt == 'nvd3':
             self.finish({'key': CATEGORY_LABELS[category],
-                         'values': list(records)})
+                         'values': [dataclasses.asdict(r) for r in records]})
         elif fmt == 'tsv':
             self.set_header('Content-Type', 'text/plain')
             log_unit = appconfig.LOG_UNITS[category]
@@ -336,7 +338,7 @@ class TankMonitor(Application):
     def log_tank_depth(self, tank_depth: Union[int, float]):
         """The log* methods can be called from outside the app's IOLoop. They're the
         only methods that can be called like that"""
-        log.info("Logging depth: " + str(tank_depth))
+        log.debug("Logging depth: " + str(tank_depth))
         asyncio.ensure_future(self._offer_log_record('depth', time(), tank_depth))
 
     def log_density(self, density: float):
@@ -363,7 +365,6 @@ class TankMonitor(Application):
         Secondly, it notifies all the listeners currently using an instance
         of the EventConnection() class.
         """
-        log.info(f"In _offer_log_record, category == {category}, timestamp == {timestamp}, value == {value}")
         log_record = TankLogRecord(timestamp=timestamp, value=value)
         if category == 'depth' and value < appconfig.ALERT_THRESHOLDS['depth']:
             await AlertMailer.offer('depth', TankAlert(timestamp=timestamp, value=value, delta=None))

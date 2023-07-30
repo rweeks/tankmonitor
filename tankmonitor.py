@@ -337,23 +337,19 @@ class TankMonitor(Application):
         """The log* methods can be called from outside the app's IOLoop. They're the
         only methods that can be called like that"""
         log.info("Logging depth: " + str(tank_depth))
-        IOLoop.current().spawn_callback(self._offer_log_record, 'depth', time(),
-                                              tank_depth)
+        asyncio.ensure_future(self._offer_log_record('depth', time(), tank_depth))
 
     def log_density(self, density: float):
         log.debug("Logging density: " + str(density))
-        IOLoop.current().spawn_callback(self._offer_log_record, 'density', time(),
-                                              density)
+        asyncio.ensure_future(self._offer_log_record('density', time(), density))
 
     def log_water_temp(self, water_temp: float):
         log.debug("Logging water temp: " + str(water_temp))
-        IOLoop.current().spawn_callback(self._offer_log_record, 'water_temp', time(),
-                                              water_temp)
+        asyncio.ensure_future(self._offer_log_record('water_temp', time(), water_temp))
 
     def log_distance(self, distance: Union[int, float]):
         # log.debug("Logging distance:" + str(distance))
-        IOLoop.current().spawn_callback(self._offer_log_record, 'distance', time(),
-                                              distance)
+        asyncio.ensure_future(self._offer_log_record('distance', time(), distance))
 
     async def _offer_log_record(self, category, timestamp, value):
         """

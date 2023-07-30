@@ -16,7 +16,6 @@ from logging.handlers import TimedRotatingFileHandler
 import json
 import binascii
 from tanklogger import TankLogger, TankLogRecord, TankAlert
-from functools import partial
 from datetime import datetime, timedelta
 from time import time, sleep
 import serial
@@ -156,7 +155,7 @@ class LogDownloadHandler(RequestHandler):
         log.debug("Returning %d records for %s" % (len(records), category))
         if fmt == 'nvd3':
             self.finish({'key': CATEGORY_LABELS[category],
-                         'values': [dataclasses.asdict(r) for r in records]})
+                         'values': [dataclasses.astuple(r) for r in records]})
         elif fmt == 'tsv':
             self.set_header('Content-Type', 'text/plain')
             log_unit = appconfig.LOG_UNITS[category]

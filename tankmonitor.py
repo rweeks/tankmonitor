@@ -7,7 +7,6 @@ from tornado.web import Application, RequestHandler, HTTPError, StaticFileHandle
 from tornado.httpserver import HTTPServer
 from tornado.template import Template
 from tornado.ioloop import IOLoop, PeriodicCallback
-from tornado.gen import coroutine
 from sockjs.tornado import SockJSRouter, SockJSConnection
 import logging
 from logging.handlers import TimedRotatingFileHandler
@@ -336,26 +335,25 @@ class TankMonitor(Application):
         """The log* methods can be called from outside the app's IOLoop. They're the
         only methods that can be called like that"""
         log.debug("Logging depth: " + str(tank_depth))
-        IOLoop.current().add_callback(partial(self._offer_log_record, 'depth', time(),
+        IOLoop.current().spawn_callback(partial(self._offer_log_record, 'depth', time(),
                                               tank_depth))
 
     def log_density(self, density: float):
         log.debug("Logging density: " + str(density))
-        IOLoop.current().add_callback(partial(self._offer_log_record, 'density', time(),
+        IOLoop.current().spawn_callback(partial(self._offer_log_record, 'density', time(),
                                               density))
 
     def log_water_temp(self, water_temp: float):
         log.debug("Logging water temp: " + str(water_temp))
-        IOLoop.current().add_callback(partial(self._offer_log_record, 'water_temp', time(),
+        IOLoop.current().spawn_callback(partial(self._offer_log_record, 'water_temp', time(),
                                               water_temp))
 
     def log_distance(self, distance: Union[int, float]):
         # log.debug("Logging distance:" + str(distance))
-        IOLoop.current().add_callback(partial(self._offer_log_record, 'distance', time(),
+        IOLoop.current().spawn_callback(partial(self._offer_log_record, 'distance', time(),
                                               distance))
 
-    @coroutine
-    def _offer_log_record(self, category, timestamp, value):
+    async def _offer_log_record(self, category, timestamp, value):
         """
         The underscore prefixing the method tells the developer that
         it is used internally, in reference to the class.
@@ -369,13 +367,13 @@ class TankMonitor(Application):
         """
         log_record = TankLogRecord(timestamp=timestamp, value=value)
         if category == 'depth' and value < appconfig.ALERT_THRESHOLDS['depth']:
-            yield AlertMailer.offer('depth', TankAlert(timestamp=timestamp, value=value, delta=None))
+            await AlertMailer.offer('depth', TankAlert(timestamp=timestamp, value=value, delta=None))
         elif category == 'density' and value > appconfig.ALERT_THRESHOLDS['density']:
-            yield AlertMailer.offer('density', TankAlert(timestamp=timestamp, value=value, delta=None))
+            await AlertMailer.offer('density', TankAlert(timestamp=timestamp, value=value, delta=None))
         for logger in self.loggers[category]:
             alert = logger.offer(log_record)
             if alert:
-                yield AlertMailer.offer(alert)
+                await AlertMailer.offer(alert)
         EventConnection.notify_all({
             'event': 'log_value',
             'unit': appconfig.LOG_UNITS[category],
@@ -795,8 +793,7 @@ class AlertMailer(object):
                 conn.quit()
 
     @staticmethod
-    @coroutine
-    def offer(category, tank_alert):
+    async def offer(category, tank_alert):
         """
         The offer() method logs and sends an alert message if one has not
         yet previously been sent or if the period in between emails has
@@ -819,7 +816,7 @@ class AlertMailer(object):
             log.warning("Sending e-mail alert due to %s %s" % (category, str(tank_alert)))
             log.warning(alert_text)
             AlertMailer.last_alert = offer_time
-            yield thread_pool.submit(lambda: AlertMailer.send_message(alert_text, tank_alert))
+            thread_pool.submit(lambda: AlertMailer.send_message(alert_text, tank_alert))
 
 
 if __name__ == "__main__":

@@ -821,6 +821,7 @@ class AlertMailer(object):
 
 
 async def main():
+    log.info("Executing async main")
     event_router = SockJSRouter(EventConnection, '/event')
     handlers: List[tuple[str, type]] = [ # In this case, `type` refers to a custom type.
         (r'/', MainPageHandler),
@@ -866,7 +867,6 @@ async def main():
     Initialize multiple methods to keep the project
     (i.e., software, display, log level) up to date.
     """
-    ioloop = IOLoop.instance()
     disp_print_cb = PeriodicCallback(app.update_display, callback_time=500)
     disp_print_cb.start()
     button_poll_cb = PeriodicCallback(app.poll_display_button, callback_time=100)
@@ -906,8 +906,9 @@ async def main():
         inspection.
         """
         log.error(f"Unable to setup DensitrakHandler:\n{e}", exc_info=e)
-    ioloop.start()
+    await asyncio.Event().wait()
 
 if __name__ == "__main__":
+    log.info("Starting tankmonitor in asyncio ioloop")
     asyncio.run(main())
 

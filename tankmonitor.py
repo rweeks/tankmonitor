@@ -1,5 +1,6 @@
 import os
 import sys
+import asyncio
 from threading import Lock, Thread
 from typing import Union, List, Optional
 
@@ -672,7 +673,7 @@ class DensitrakHandler:
             finally:
                 sleep(2)
 
-    def send_command(self, command: str):
+    def send_command(self, command: bytes):
         """
         The `send_command()` method is used to send commands to the Densitrak. This
         method takes binary values as arguments. For example, the `read()` method (located in the same file),
@@ -819,7 +820,7 @@ class AlertMailer(object):
             thread_pool.submit(lambda: AlertMailer.send_message(alert_text, tank_alert))
 
 
-if __name__ == "__main__":
+async def main():
     event_router = SockJSRouter(EventConnection, '/event')
     handlers: List[tuple[str, type]] = [ # In this case, `type` refers to a custom type.
         (r'/', MainPageHandler),
@@ -906,3 +907,7 @@ if __name__ == "__main__":
         """
         log.error(f"Unable to setup DensitrakHandler:\n{e}", exc_info=e)
     ioloop.start()
+
+if __name__ == "__main__":
+    asyncio.run(main())
+

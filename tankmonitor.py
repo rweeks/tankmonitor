@@ -294,6 +294,7 @@ class TankMonitor(Application):
         """
 
         super(TankMonitor, self).__init__(handlers, **settings)
+        self.event_loop = asyncio.get_event_loop()
 
         self.loggers: dict[str, List[TankLogger]] = {
             'depth': [
@@ -520,6 +521,7 @@ class MaxbotixHandler:
 
         """
         log.info("Starting MaxbotixHandler read")
+        asyncio.set_event_loop(self.tank_monitor.event_loop)
         val = None
         read_count: int = 0
         while not self.stop_reading:
@@ -663,6 +665,7 @@ class DensitrakHandler:
         When the method is called, if it does not have reading permission, it exits the function.
         """
         log.info("Starting Densitrak read")
+        asyncio.set_event_loop(self.tank_monitor.event_loop)
         while not self.stop_reading:
             try:
                 self.tank_monitor.log_density(

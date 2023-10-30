@@ -222,7 +222,7 @@ class ValveHandler(RequestHandler):
             self.finish()
             return
         else:
-            auth_decoded = base64.decodestring(auth_header[6:])
+            auth_decoded = base64.b64decode(auth_header[6:])
             hdr_auth = {'username': (auth_decoded.split(':', 2))[0], 'password': (auth_decoded.split(':', 2))[1]}
             if hdr_auth != appconfig.CREDENTIALS:
                 raise HTTPError(403, reason="Valve control credentials invalid")
